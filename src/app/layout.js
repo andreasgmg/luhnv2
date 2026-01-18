@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata = {
   metadataBase: new URL('https://luhn.se'),
   title: {
-    default: 'Luhn.se | Officiell Generator för Svensk Testdata',
+    default: 'Luhn.se | Generator för Svensk Testdata',
     template: '%s | Luhn.se'
   },
   description: 'Generera giltiga, GDPR-säkra svenska personnummer, samordningsnummer, organisationsnummer och bankgironummer för systemtestning. Validera clearingnummer och bankkonton.',
@@ -19,7 +19,7 @@ export const metadata = {
   creator: 'Luhn.se',
   publisher: 'Luhn.se',
   openGraph: {
-    title: 'Luhn.se - Officiell Svensk Testdata',
+    title: 'Luhn.se - Svensk Testdata',
     description: 'Utvecklarverktyget för att generera och validera svenska identitets- och finansiella nummer.',
     url: 'https://luhn.se',
     siteName: 'Luhn.se',

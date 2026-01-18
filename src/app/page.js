@@ -1,8 +1,11 @@
 import Generator from '../components/Generator';
 
 export const metadata = {
-  title: 'Generera Personnummer | Luhn.se',
-  description: 'Gratis verktyg för att generera giltiga svenska personnummer, samordningsnummer och organisationsnummer för systemtestning. GDPR-säker testdata.',
+  title: 'Luhn.se | Svensk Testdata & Validering för Utvecklare',
+  description: 'Det kompletta verktyget för att generera och validera svenska personnummer, organisationsnummer och bankuppgifter. Gratis API och GDPR-säkert.',
+  alternates: {
+    canonical: 'https://luhn.se',
+  },
 };
 
 export default function Home() {
