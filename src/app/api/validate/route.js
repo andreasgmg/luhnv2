@@ -25,6 +25,7 @@ export async function GET(request) {
 
   let result = { valid: false };
 
+  // We await everything to be future-proof and handle the async validateAddress
   switch (type) {
       case 'address':
       case 'zip':
@@ -33,35 +34,34 @@ export async function GET(request) {
       case 'ssn':
       case 'personnummer':
       case 'samordningsnummer':
-          result = validatePersonnummer(value);
+          result = await validatePersonnummer(value);
           break;
       case 'org':
       case 'organisation':
-          result = validateOrgNumber(value);
+          result = await validateOrgNumber(value);
           break;
       case 'vat':
       case 'moms':
-          result = validateVAT(value);
+          result = await validateVAT(value);
           break;
       case 'bg':
       case 'bankgiro':
-          result = validateBankgiro(value);
+          result = await validateBankgiro(value);
           break;
       case 'pg':
       case 'plusgiro':
-          result = validatePlusgiro(value);
+          result = await validatePlusgiro(value);
           break;
       case 'account':
       case 'bank_account':
           if (!value2) {
               return NextResponse.json({ error: 'Missing parameter: value2 (required for account number)' }, { status: 400 });
           }
-          result = validateBankAccount(value, value2);
+          result = await validateBankAccount(value, value2);
           break;
       default:
           return NextResponse.json({ error: `Invalid validation type: ${type}` }, { status: 400 });
   }
 
-  // Return 200 OK for successful validation checks (even if valid is false)
   return NextResponse.json(result);
 }

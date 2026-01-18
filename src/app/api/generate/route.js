@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { getOfficialIdentity } from '../../../lib/data-provider';
 
 // Helper för XML-escaping
@@ -8,26 +7,49 @@ function escapeXML(val) {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+// Helper för XML-generering
+function toXML(obj, type) {
+    let xml = `<${type}>
+`;
+    for (let key in obj) {
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+            xml += `  <${key}>
+`;
+            for (let subKey in obj[key]) {
+                xml += `    <${subKey}>${escapeXML(obj[key][subKey])}</${subKey}>
+`;
+            }
+            xml += `  </${key}>
+`;
+        } else {
+            xml += `  <${key}>${escapeXML(obj[key])}</${key}>
+`;
+        }
+    }
+    xml += `</${type}>
+`;
+    return xml;
+}
 
 // Helper för korrekt CSV-escaping
 function escapeCSV(val) {
     if (val === null || val === undefined) return '';
     const str = String(val);
-    // Ersätt ett citattecken med två, och omslut hela strängen med citattecken
     return `"${str.replace(/"/g, '""')}"`;
 }
 
 /**
  * API v3 - Streaming Support
- * Hanterar massiv generering (upp till 100k rader) via Web Streams.
  */
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') || 'personnummer';
   const format = searchParams.get('format') || 'json';
   
-  // Höj taket till 100 000
   let count = parseInt(searchParams.get('count') || '1');
   if (count < 1) count = 1;
   if (count > 100000) count = 100000;
@@ -41,24 +63,20 @@ export async function GET(request) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      // JSON Start
       if (format === 'json' && count > 1) {
         controller.enqueue(encoder.encode('['));
       }
       
-      // CSV Header
       if (format === 'csv') {
         let header = '';
         if (type === 'company') header = 'orgNumber,name,vatNumber\n';
-        else if (type === 'bankgiro') header = 'bankgiro,bank\n';
-        else if (type === 'plusgiro') header = 'plusgiro,bank\n';
+        else if (type === 'bankgiro' || type === 'plusgiro') header = 'bankgiro,bank\n';
         else if (type === 'ocr') header = 'ocr,length,lengthCheck\n';
         else if (type === 'bank_account') header = 'bank,clearing,account\n';
         else header = 'ssn,firstName,lastName,gender,street,zip,city\n';
         controller.enqueue(encoder.encode(header));
       }
 
-      // XML Start
       if (format === 'xml') {
         controller.enqueue(encoder.encode('<?xml version="1.0" encoding="UTF-8"?>\n<root>\n'));
       }
@@ -80,7 +98,6 @@ export async function GET(request) {
           } else if (type === 'ocr') {
             chunk = `${identity.ocr},${identity.length},${identity.lengthCheck}\n`;
           } else {
-            // Person
             chunk = `${identity.ssn},${escapeCSV(identity.firstName)},${escapeCSV(identity.lastName)},${identity.gender},${escapeCSV(identity.address.street)},${identity.address.zip},${escapeCSV(identity.address.city)}\n`;
           }
         } else if (format === 'xml') {
@@ -89,13 +106,11 @@ export async function GET(request) {
 
         controller.enqueue(encoder.encode(chunk));
 
-        // Motverka att blockera tråden vid stora jobb
         if (i % 200 === 0) {
           await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
 
-      // Finalize
       if (format === 'json' && count > 1) controller.enqueue(encoder.encode(']'));
       if (format === 'xml') controller.enqueue(encoder.encode('</root>'));
       
@@ -112,8 +127,9 @@ export async function GET(request) {
   return new Response(stream, {
     headers: { 
         'Content-Type': contentTypes[format] || 'application/json',
-        'Content-Disposition': count > 1 ? `attachment; filename="luhn_export_${type}.${format}"` : 'inline',
-        'Cache-Control': 'no-cache'
+        'Content-Disposition': count > 10 ? `attachment; filename="luhn_export_${type}.${format}"` : 'inline',
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*'
     },
   });
 }
