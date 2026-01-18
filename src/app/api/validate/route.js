@@ -28,7 +28,7 @@ export async function GET(request) {
   switch (type) {
       case 'address':
       case 'zip':
-          result = validateAddress(value, value2);
+          result = await validateAddress(value, value2);
           break;
       case 'ssn':
       case 'personnummer':

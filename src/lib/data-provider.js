@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 import { luhnCheck, BANK_RANGES, generateOCR, getRandomElement } from './utils.js';
 
@@ -11,15 +11,17 @@ let cachedData = {
 };
 
 /**
- * Loads and parses JSON data from the local file system.
+ * Loads and parses JSON data from the local file system asynchronously.
  */
-function loadData(type) {
+async function loadData(type) {
   if (cachedData[type]) return cachedData[type];
 
   try {
     const fileName = type + '.json';
     const filePath = path.join(process.cwd(), 'data', fileName);
-    const fileContent = fs.readFileSync(filePath, 'utf8');
+    
+    // Asynkron filinläsning för att inte blockera event-loopen
+    const fileContent = await fs.readFile(filePath, 'utf8');
     const json = JSON.parse(fileContent);
 
     if (type === 'locations' || type === 'names') {
@@ -31,7 +33,6 @@ function loadData(type) {
     if (Array.isArray(json)) {
       rawList = json;
     } else {
-      // Aggregate ALL arrays found in the object (e.g. different years)
       rawList = Object.values(json).reduce((acc, val) => {
         if (Array.isArray(val)) {
           return acc.concat(val);
@@ -91,8 +92,8 @@ export function generatePlusgiro() {
     return `${full.slice(0, -1)}-${full.slice(-1)}`;
 }
 
-export function generateBankAccount() {
-    const namesData = loadData('names');
+export async function generateBankAccount() {
+    const namesData = await loadData('names');
     const bank = getRandomElement(BANK_RANGES);
     const clearing = Math.floor(Math.random() * (bank.max - bank.min + 1)) + bank.min;
     const accLen = Math.floor(Math.random() * 4) + 7; 
@@ -124,8 +125,8 @@ function getYearFromSSN(ssn) {
     return 0;
 }
 
-export function validateAddress(zip, city = null) {
-    const locations = loadData('locations');
+export async function validateAddress(zip, city = null) {
+    const locations = await loadData('locations');
     if (!locations.length) return { valid: false, error: 'Databasen är inte laddad' };
     const cleanZip = zip.replace(/\s/g, ''); 
     const matches = locations.filter(loc => loc.zip.replace(/\s/g, '') === cleanZip);
@@ -137,9 +138,9 @@ export function validateAddress(zip, city = null) {
     return { valid: true, city: matches[0].city, zip: matches[0].zip };
 }
 
-export function getOfficialIdentity(type = 'personnummer', options = {}) {
+export async function getOfficialIdentity(type = 'personnummer', options = {}) {
   const { gender, minYear, maxYear } = options;
-  const namesData = loadData('names');
+  const namesData = await loadData('names');
 
   if (type === 'company') {
       const orgNumber = generateOrgNumber();
@@ -157,14 +158,14 @@ export function getOfficialIdentity(type = 'personnummer', options = {}) {
 
   if (type === 'bankgiro') return { bankgiro: generateBankgiro(), bank: 'Bankgirot', type: 'bankgiro' };
   if (type === 'plusgiro') return { plusgiro: generatePlusgiro(), bank: 'Plusgirot', type: 'plusgiro' };
-  if (type === 'bank_account') return { ...generateBankAccount(), type: 'bank_account' };
+  if (type === 'bank_account') return { ...(await generateBankAccount()), type: 'bank_account' };
   if (type === 'ocr') {
       const ocr = generateOCR(options.length || 10, options.lengthCheck || false);
       return { ocr, length: options.length || 10, type: 'ocr' };
   }
 
-  const list = loadData(type);
-  const locations = loadData('locations');
+  const list = await loadData(type);
+  const locations = await loadData('locations');
   
   if (!list.length) return null;
   let candidates = list;

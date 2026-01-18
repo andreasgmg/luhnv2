@@ -115,7 +115,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": ["ssn", "org", "vat", "bg", "pg", "account"]
+              "enum": ["ssn", "org", "vat", "bg", "pg", "account", "address", "zip"]
             }
           },
           {
