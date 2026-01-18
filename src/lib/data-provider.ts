@@ -39,13 +39,19 @@ export interface Bankgiro {
   type: 'bankgiro';
 }
 
+export interface Plusgiro {
+  plusgiro: string;
+  bank: string;
+  type: 'plusgiro';
+}
+
 export interface OCR {
   ocr: string;
   length: number;
   type: 'ocr';
 }
 
-export type Identity = Person | Company | BankAccount | Bankgiro | OCR;
+export type Identity = Person | Company | BankAccount | Bankgiro | Plusgiro | OCR;
 
 export interface NamesData {
   firstNames: {

@@ -1,8 +1,9 @@
 # Luhn.se - Svensk Testdata & Validering
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
-![Next.js](https://img.shields.io/badge/built%20with-Next.js-black)
+![Build Status](https://github.com/andreasgmg/luhnv2/actions/workflows/ci.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
+![License](https://img.shields.io/github/license/andreasgmg/luhnv2)
+![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue)
 
 Sveriges mest kompletta verktyg för att generera och validera testdata. Byggt för utvecklare, med fokus på **CI/CD**, **Säkerhet** och **Enkelhet**.
 

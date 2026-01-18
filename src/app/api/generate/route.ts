@@ -61,9 +61,9 @@ export async function GET(request: NextRequest) {
   if (count > MAX_COUNT) count = MAX_COUNT;
 
   const options = {
-    gender: searchParams.get('gender'),
-    minYear: searchParams.get('minYear'),
-    maxYear: searchParams.get('maxYear')
+    gender: searchParams.get('gender') ?? undefined,
+    minYear: searchParams.get('minYear') ?? undefined,
+    maxYear: searchParams.get('maxYear') ?? undefined
   };
 
   const encoder = new TextEncoder();

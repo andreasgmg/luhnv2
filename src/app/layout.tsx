@@ -1,76 +1,55 @@
-import './globals.css';
-import { Inter } from 'next/font/google';
+import { Inter } from "next/font/google";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  metadataBase: new URL('https://luhn.se'),
-  title: {
-    default: 'Luhn.se | Generator för Svensk Testdata',
-    template: '%s | Luhn.se'
+  title: "Luhn.se | Svensk Testdata & Validering",
+  description: "Sveriges mest kompletta verktyg för att generera och validera testdata. Personnummer, organisationsnummer, bankkonton och mer.",
+  keywords: "personnummer, testdata, luhn, organisationsnummer, bankgiro, ocr, validering, utvecklare",
+  authors: [{ name: "Luhn.se" }],
+  viewport: "width=device-width, initial-scale=1",
+  robots: "index, follow",
+  alternates: {
+    canonical: "https://luhn.se",
   },
-  description: 'Generera giltiga, GDPR-säkra svenska personnummer, samordningsnummer, organisationsnummer och bankgironummer för systemtestning. Validera clearingnummer och bankkonton.',
-  keywords: [
-    'Personnummer', 'Samordningsnummer', 'Organisationsnummer', 'Bankgiro', 
-    'Svensk Testdata', 'Mock Data', 'GDPR', 'Luhn-algoritm', 
-    'Validerare', 'Clearingnummer', 'Testpersonnummer', 'Skatteverket'
-  ],
-  authors: [{ name: 'Luhn.se' }],
-  creator: 'Luhn.se',
-  publisher: 'Luhn.se',
   openGraph: {
-    title: 'Luhn.se - Svensk Testdata',
-    description: 'Utvecklarverktyget för att generera och validera svenska identitets- och finansiella nummer.',
-    url: 'https://luhn.se',
-    siteName: 'Luhn.se',
-    locale: 'sv_SE',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Luhn.se - Svensk Testdata',
-    description: 'Generera och validera svenska personnummer, organisationsnummer och mer.',
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
+    type: "website",
+    locale: "sv_SE",
+    url: "https://luhn.se",
+    title: "Luhn.se | Svensk Testdata & Validering",
+    description: "Generera och validera svensk testdata programmatiskt.",
+    siteName: "Luhn.se",
   },
 };
 
-export default function RootLayout({ children }) {
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    'name': 'Luhn.se',
-    'applicationCategory': 'DeveloperApplication',
-    'operatingSystem': 'Web',
-    'offers': {
-      '@type': 'Offer',
-      'price': '0',
-      'priceCurrency': 'SEK'
-    },
-    'description': 'Ett verktyg för att generera och validera svenska personnummer och finansiell data (Bankgiro, Plusgiro).',
-    'featureList': 'Generera Personnummer, Validera Organisationsnummer, Kontrollera Bankgiro'
-  };
-
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang='sv' className="h-full w-full">
+    <html lang="sv">
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Luhn.se",
+              "url": "https://luhn.se",
+              "description": "Svensk testdata för utvecklare",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://luhn.se/validator?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            }),
+          }}
         />
       </head>
-      <body className={`${inter.className} h-full w-full bg-white text-slate-900 antialiased`}>
-        {children}
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }

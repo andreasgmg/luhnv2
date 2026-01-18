@@ -55,7 +55,7 @@ const TerminalWindow: React.FC = () => (
         <span className="text-gray-500 mr-3 select-none">$</span>
         <div className="flex-1">
           <span className="text-purple-400">curl</span>
-          <span className="text-gray-300 ml-2">"https://luhn.se/api/generate?type=personnummer"</span>
+          <span className="text-gray-300 ml-2">{`"https://luhn.se/api/generate?type=personnummer"`}</span>
         </div>
         <CopyButton text='curl "https://luhn.se/api/generate?type=personnummer"' />
       </div>
@@ -63,13 +63,13 @@ const TerminalWindow: React.FC = () => (
         <span className="block text-gray-500 select-none mb-1"># Output</span>
         <span className="block text-[#e6edf3]">{`{`}</span>
         <span className="block text-[#e6edf3] ml-4">
-          <span className="text-[#7ee787]">"ssn"</span>: <span className="text-[#a5d6ff]">"19900505-1234"</span>,
+          <span className="text-[#7ee787]">{`"ssn"`}</span>: <span className="text-[#a5d6ff]">{`"19900505-1234"`}</span>,
         </span>
         <span className="block text-[#e6edf3] ml-4">
-          <span className="text-[#7ee787]">"firstName"</span>: <span className="text-[#a5d6ff]">"Johan"</span>,
+          <span className="text-[#7ee787]">{`"firstName"`}</span>: <span className="text-[#a5d6ff]">{`"Johan"`}</span>,
         </span>
         <span className="block text-[#e6edf3] ml-4">
-          <span className="text-[#7ee787]">"valid"</span>: <span className="text-[#79c0ff]">true</span>
+          <span className="text-[#7ee787]">{`"valid"`}</span>: <span className="text-[#79c0ff]">true</span>
         </span>
         <span className="block text-[#e6edf3]">{`}`}</span>
       </div>
@@ -238,7 +238,7 @@ export default function Generator() {
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
              <button onClick={() => copyToClipboard(`curl "https://luhn.se${url}"`)} className="p-1.5 bg-slate-800 text-slate-400 rounded hover:text-white"><Copy size={12} /></button>
           </div>
-          <div>curl "https://luhn.se{url}"</div>
+          <div>{`curl "https://luhn.se${url}"`}</div>
         </div>
         {response && (
           <div className="border-t border-gray-200 bg-slate-50 p-4 text-left">
