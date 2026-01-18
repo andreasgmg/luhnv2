@@ -92,29 +92,18 @@ export function generateBankgiro() {
 }
 
 export function generatePlusgiro() {
-    // Plusgiro: 2-8 digits total.
-    // Generate payload of length 1-7
     const len = Math.floor(Math.random() * 7) + 1; 
     let payload = '';
-    // Avoid starting with 0
     payload += Math.floor(Math.random() * 9) + 1;
-    
-    for(let i=1; i<len; i++) {
-        payload += Math.floor(Math.random() * 10);
-    }
-    
+    for(let i=1; i<len; i++) payload += Math.floor(Math.random() * 10);
     const checkDigit = getLuhnDigit(payload);
     const full = payload + checkDigit;
-    
-    // Format X-X, XX-X, XXX-X etc.
     return `${full.slice(0, -1)}-${full.slice(-1)}`;
 }
 
 export function generateBankAccount() {
     const bank = getRandomElement(BANK_RANGES);
     const clearing = Math.floor(Math.random() * (bank.max - bank.min + 1)) + bank.min;
-    
-    // Generate random account number (usually 7-10 digits)
     const accLen = Math.floor(Math.random() * 4) + 7; 
     let account = '';
     for(let i=0; i<accLen; i++) account += Math.floor(Math.random() * 10);
@@ -133,79 +122,55 @@ function getGender(ssn) {
   return genderDigit % 2 === 0 ? 'female' : 'male';
 }
 
-export function getOfficialIdentity(type = 'personnummer', genderFilter = null) {
-  
+function getYearFromSSN(ssn) {
+    const clean = ssn.replace(/[^0-9]/g, '');
+    if (clean.length === 12) return parseInt(clean.substring(0, 4));
+    if (clean.length === 10) {
+        // Assume 19xx or 20xx based on current year or context.
+        // For simplicity in this dataset (which contains 1936-2026), we can infer.
+        // Actually, the dataset often has 12 digits in the key.
+        // If 10, let's assume 1900 + year unless year < 26.
+        const yearPart = parseInt(clean.substring(0, 2));
+        const currentYear = new Date().getFullYear() % 100;
+        return yearPart > currentYear ? 1900 + yearPart : 2000 + yearPart;
+    }
+    return 0;
+}
+
+export function getOfficialIdentity(type = 'personnummer', options = {}) {
+  const { gender, minYear, maxYear } = options;
+
   if (type === 'company') {
       const orgNumber = generateOrgNumber();
-      
-      // Generate Realistic Company Name
       const template = Math.floor(Math.random() * 3);
       let name = '';
-      
       if (template === 0) {
-          // [Efternamn]s [Bransch] [Suffix] -> "Anderssons Rör AB"
           const lastName = getRandomElement(LAST_NAMES);
           const sector = getRandomElement(COMPANY_SECTORS);
           const suffix = getRandomElement(COMPANY_SUFFIXES);
           name = `${lastName}s ${sector} ${suffix}`;
       } else if (template === 1) {
-          // [Ort] [Bransch] [Suffix] -> "Göteborgs Betong & Anläggning AB"
           const loc = getRandomElement(COMPANY_LOCATIONS);
           const sector = getRandomElement(COMPANY_SECTORS);
           const suffix = getRandomElement(COMPANY_SUFFIXES);
           name = `${loc} ${sector} ${suffix}`;
       } else {
-          // [Bransch] & [Bransch] i [Ort] AB -> "Bygg & Måleri i Malmö AB"
           const sec1 = getRandomElement(COMPANY_SECTORS);
           const sec2 = getRandomElement(COMPANY_SECTORS);
-          const loc = getRandomElement(COMPANY_LOCATIONS).replace(/s$/, ''); // Remove genitive 's' roughly
+          const loc = getRandomElement(COMPANY_LOCATIONS).replace(/s$/, ''); 
           name = `${sec1} & ${sec2} i ${loc} AB`;
       }
-
-      return {
-          orgNumber,
-          name: name,
-          vatNumber: `SE${orgNumber.replace('-', '')}01`,
-          type: 'company'
-      };
+      return { orgNumber, name, vatNumber: `SE${orgNumber.replace('-', '')}01`, type: 'company' };
   }
 
-  if (type === 'bankgiro') {
-      const bankgiro = generateBankgiro();
-      return {
-          bankgiro,
-          bank: 'Bankgirot',
-          type: 'bankgiro'
-      };
-  }
-
-  if (type === 'plusgiro') {
-      const plusgiro = generatePlusgiro();
-      return {
-          plusgiro,
-          bank: 'Plusgirot',
-          type: 'plusgiro'
-      };
-  }
-
-  if (type === 'bank_account') {
-      const account = generateBankAccount();
-      return {
-          ...account,
-          type: 'bank_account'
-      };
-  }
-
+  if (type === 'bankgiro') return { bankgiro: generateBankgiro(), bank: 'Bankgirot', type: 'bankgiro' };
+  if (type === 'plusgiro') return { plusgiro: generatePlusgiro(), bank: 'Plusgirot', type: 'plusgiro' };
+  if (type === 'bank_account') return { ...generateBankAccount(), type: 'bank_account' };
   if (type === 'ocr') {
-      const length = Math.floor(Math.random() * 20) + 6; // 6 to 25
+      const length = Math.floor(Math.random() * 20) + 6; 
       const useLengthCheck = Math.random() > 0.5;
       const ocr = generateOCR(length, useLengthCheck);
-      return {
-          ocr,
-          length,
-          lengthCheck: useLengthCheck,
-          type: 'ocr'
-      };
+      return { ocr, length, lengthCheck: useLengthCheck, type: 'ocr' };
   }
 
   const list = loadData(type);
@@ -214,24 +179,30 @@ export function getOfficialIdentity(type = 'personnummer', genderFilter = null) 
   if (!list.length) return null;
 
   let candidates = list;
-  if (genderFilter) {
-    candidates = list.filter(ssn => getGender(ssn) === genderFilter);
+  
+  // Filter by Gender
+  if (gender) {
+    candidates = candidates.filter(ssn => getGender(ssn) === gender);
+  }
+
+  // Filter by Year
+  if (minYear || maxYear) {
+      candidates = candidates.filter(ssn => {
+          const y = getYearFromSSN(ssn);
+          if (minYear && y < parseInt(minYear)) return false;
+          if (maxYear && y > parseInt(maxYear)) return false;
+          return true;
+      });
   }
 
   if (!candidates.length) return null;
 
   let ssn = getRandomElement(candidates);
   const actualGender = getGender(ssn);
-  
   const firstName = getRandomElement(FIRST_NAMES[actualGender]);
   const lastName = getRandomElement(LAST_NAMES);
-  
-  // Get random real location
-  const location = locations.length > 0 
-    ? getRandomElement(locations) 
-    : { street: 'Storgatan', zip: '111 22', city: 'Stockholm' }; // Fallback
+  const location = locations.length > 0 ? getRandomElement(locations) : { street: 'Storgatan', zip: '111 22', city: 'Stockholm' };
 
-  // Normalize to 10 digits
   if (ssn.length === 12) {
     ssn = ssn.slice(2);
   }

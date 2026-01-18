@@ -4,7 +4,7 @@ const ACCOUNT_TYPES = {
   TYPE_1: 'TYPE_1', // Mod11 on Account only (Standard)
   TYPE_2: 'TYPE_2', // Mod11 on Clearing + Account (Handelsbanken)
   TYPE_3: 'TYPE_3', // Mod10 on Clearing + Account (Nordea Personkonto)
-  TYPE_4: 'TYPE_4', // Mod10 on Account only (Swedbank)
+  TYPE_4: 'TYPE_4', // Swedbank (Complex: 5-digit clearing Mod10 + Account Mod10 OR 4-digit Mod10)
 };
 
 const BANK_DATA = [
@@ -65,17 +65,13 @@ export function validateSwedishBank(clearing, account) {
     return { valid: false, error: 'Okänt clearingnummer (finns ej i registret)', bankName: 'Okänd' };
   }
 
-  // 3. Normalize Account Length based on rules
-  // Standard format is often Clearing(4) + Account.
-  // Swedbank 8xxx is Clearing(5) + Account.
-  
   let isValid = false;
   let method = '';
+  let errorMsg = null;
 
   switch (bank.type) {
     case ACCOUNT_TYPES.TYPE_1: // Mod11 on Account Only
       method = 'Modulo 11 (på kontonummer)';
-      // SEB & others often require padding to 10 digits for the check
       isValid = mod11(ac); 
       break;
 
@@ -89,19 +85,41 @@ export function validateSwedishBank(clearing, account) {
       isValid = mod10(cl + ac);
       break;
 
-    case ACCOUNT_TYPES.TYPE_4: // Swedbank: Mod10 on Account
-      method = 'Modulo 10 (på kontonummer)';
-      // Swedbank 8xxx has 5 digit clearing. The 5th digit is ignored for account validation logic usually,
-      // or the account itself is validated. Swedbank accounts are often entered as clearing(4) + account.
-      // If clearing starts with 8, account should be 10 digits? 
-      // Simplified: Check Mod10 on the Account part.
-      isValid = mod10(ac);
+    case ACCOUNT_TYPES.TYPE_4: // Swedbank (Complex)
+      if (cl.startsWith('8')) {
+          // Swedbank 8xxx-x (5 digits)
+          method = 'Swedbank 8-serie (Clearing Mod10 + Konto Mod10)';
+          
+          let validClearing = true;
+          // If the user entered 5 digits, check the 5th digit (checksum)
+          if (cl.length === 5) {
+              validClearing = mod10(cl);
+              if (!validClearing) {
+                  errorMsg = 'Felaktig kontrollsiffra i clearingnumret (5:e siffran)';
+              }
+          }
+          // Note: If cl is 4 digits, we assume it's incomplete or entered without check digit,
+          // but we still proceed to check the account. 
+          
+          // Account check: Mod10 on account part
+          const validAccount = mod10(ac);
+          if (!validAccount && !errorMsg) {
+              errorMsg = 'Felaktig kontrollsiffra i kontonumret (Mod10)';
+          }
+
+          isValid = validClearing && validAccount;
+
+      } else {
+          // Swedbank Standard (7xxx, 9xxx) -> Mod10 on Account only
+          method = 'Modulo 10 (på kontonummer)';
+          isValid = mod10(ac);
+      }
       break;
   }
 
   return {
     valid: isValid,
     bankName: bank.name,
-    error: isValid ? null : `Fel kontrollsiffra (${method})`
+    error: isValid ? null : (errorMsg || `Fel kontrollsiffra (${method})`)
   };
 }

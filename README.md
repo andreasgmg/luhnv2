@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Luhn.se - Svensk Testdata & Validering
 
-## Getting Started
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
+![Next.js](https://img.shields.io/badge/built%20with-Next.js-black)
 
-First, run the development server:
+Sveriges mest kompletta verktyg för att generera och validera testdata. Byggt för utvecklare, med fokus på **CI/CD**, **Säkerhet** och **Enkelhet**.
 
+🌐 **Live Demo:** [https://luhn.se](https://luhn.se)
+
+## 🚀 Features
+
+*   ✅ **Personnummer:** Generera giltiga, syntetiska personnummer med Luhn-kontroll och realistiska namn/adresser.
+*   ✅ **Samordningsnummer:** Stöd för individer utan personnummer (Dag + 60).
+*   ✅ **Organisationsnummer:** Skapa bolagsprofiler med korrekta org.nummer och VAT.
+*   ✅ **Bankgiro & Plusgiro:** Generera säkra nummer (998-serien) för betalningstester.
+*   ✅ **Bankkonton:** Validera clearingnummer och kontonummer mot Bankföreningens regelverk (Swedbank, SEB, Nordea, etc.).
+*   ✅ **OCR:** Generera referensnummer med längd- och checksummekontroll.
+*   ✅ **API:** Öppet REST-API med CORS-stöd för integration i testmiljöer.
+
+## 🛠 API Quick Start
+
+Inga API-nycklar. Ingen autentisering. Bara anropa.
+
+### Generera Personnummer
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+curl "https://luhn.se/api/generate?type=personnummer"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Response:**
+```json
+{
+  "ssn": "19900505-1234",
+  "firstName": "Lars",
+  "lastName": "Svensson",
+  "gender": "male",
+  "type": "person",
+  "address": {
+    "street": "Storgatan 12",
+    "zip": "111 22",
+    "city": "Stockholm"
+  }
+}
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Validera Bankkonto
+```bash
+curl "https://luhn.se/api/validate?type=account&value=8105&value2=993422324"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Response:**
+```json
+{
+  "valid": true,
+  "bankName": "Swedbank"
+}
+```
 
-## Learn More
+## 📦 Kör lokalt (Docker)
 
-To learn more about Next.js, take a look at the following resources:
+Du kan köra hela Luhn.se som en container i din egen infrastruktur.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+docker build -t luhn .
+docker run -p 3000:3000 luhn
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Öppna `http://localhost:3000` i din webbläsare.
 
-## Deploy on Vercel
+## 💻 Utveckling
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Vill du bidra? Grymt!
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# Klona repot
+git clone https://github.com/ditt-namn/luhnv2.git
+
+# Installera beroenden
+npm install
+
+# Starta dev-servern
+npm run dev
+```
+
+## 🛡️ GDPR & Säkerhet
+
+All data som genereras är **100% syntetisk**.
+*   Namn och adresser slumpas fram från SCB:s topplistor och postnummerregister.
+*   Personnummer är matematiskt giltiga men tillhör inte nödvändigtvis en levande person.
+*   Bankgironummer hämtas från test-serier (998-xxxx).
+
+Tjänsten är **stateless** och sparar ingen data om anropen.
+
+## 📄 Licens
+
+MIT © [Luhn.se](https://luhn.se)

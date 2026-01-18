@@ -1,7 +1,7 @@
 {
   "name": "luhnv2",
   "version": "1.0.0",
-  "description": "Luhn.se - Official Swedish Test Data Generator",
+  "description": "The most complete Test Data API for Swedish developers",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
