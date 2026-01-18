@@ -1,0 +1,191 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Luhn.se API",
+    "description": "Sveriges mest kompletta API för att generera och validera svensk testdata. Inga API-nycklar krävs.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Luhn.se Support",
+      "url": "https://luhn.se"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://luhn.se",
+      "description": "Produktionsserver"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Lokal utveckling"
+    }
+  ],
+  "paths": {
+    "/api/generate": {
+      "get": {
+        "summary": "Generera testdata",
+        "description": "Skapar en eller flera slumpmässiga, matematiskt giltiga identiteter eller finansiella nummer.",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Typ av data som ska genereras",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["personnummer", "samordningsnummer", "company", "bankgiro", "plusgiro", "bank_account", "ocr"],
+              "default": "personnummer"
+            }
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "description": "Antal objekt att returnera (max 100 000)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Svarsformat",
+            "schema": {
+              "type": "string",
+              "enum": ["json", "csv"],
+              "default": "json"
+            }
+          },
+          {
+            "name": "gender",
+            "in": "query",
+            "description": "Filtrera på kön (endast för personnummer)",
+            "schema": {
+              "type": "string",
+              "enum": ["male", "female"]
+            }
+          },
+          {
+            "name": "minYear",
+            "in": "query",
+            "description": "Minsta födelseår",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "maxYear",
+            "in": "query",
+            "description": "Högsta födelseår",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lyckad generering",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/Person" },
+                    { "$ref": "#/components/schemas/Company" },
+                    { "type": "array", "items": { "anyOf": [
+                      { "$ref": "#/components/schemas/Person" },
+                      { "$ref": "#/components/schemas/Company" }
+                    ]}}
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/validate": {
+      "get": {
+        "summary": "Validera nummer",
+        "description": "Kontrollerar checksumma, format och logik för svenska identifierare.",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["ssn", "org", "vat", "bg", "pg", "account"]
+            }
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "required": true,
+            "description": "Numret som ska valideras",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "value2",
+            "in": "query",
+            "description": "Kontonummer (krävs endast för typ 'account' där value är clearing)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Valideringsresultat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Person": {
+        "type": "object",
+        "properties": {
+          "ssn": { "type": "string", "example": "19900101-1234" },
+          "firstName": { "type": "string", "example": "Erik" },
+          "lastName": { "type": "string", "example": "Johansson" },
+          "gender": { "type": "string", "enum": ["male", "female"] },
+          "address": {
+            "type": "object",
+            "properties": {
+              "street": { "type": "string", "example": "Storgatan 12" },
+              "zip": { "type": "string", "example": "111 22" },
+              "city": { "type": "string", "example": "Stockholm" }
+            }
+          }
+        }
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "orgNumber": { "type": "string", "example": "556000-0000" },
+          "name": { "type": "string", "example": "Svenska Test AB" },
+          "vatNumber": { "type": "string", "example": "SE556000000001" }
+        }
+      },
+      "ValidationResult": {
+        "type": "object",
+        "properties": {
+          "valid": { "type": "boolean" },
+          "error": { "type": "string", "nullable": true },
+          "bankName": { "type": "string", "nullable": true }
+        }
+      }
+    }
+  }
+}

@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
-import { Copy, Check, Menu, X, Terminal, Briefcase, User, Building2, CreditCard, ShieldCheck, Wallet, Code2, Server, Home, ArrowRight, Database, Heart, ScanLine } from 'lucide-react';
+import { Copy, Check, Menu, X, Terminal, Briefcase, User, Building2, CreditCard, ShieldCheck, Wallet, Code2, Server, Home, ArrowRight, Database, Heart, ScanLine, Download } from 'lucide-react';
 import { 
     validatePersonnummer, 
     validateOrgNumber, 
@@ -105,12 +105,10 @@ export default function Generator() {
   };
 
   const activeTab = getTabFromPath(pathname);
-  const initialValidatorType = getValidatorTypeFromPath(pathname);
-  
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [validatorType, setValidatorType] = useState(initialValidatorType);
+  const [validatorType, setValidatorType] = useState(getValidatorTypeFromPath(pathname));
   const [valInput, setValInput] = useState('');
   const [valInput2, setValInput2] = useState(''); 
   const [valResult, setValResult] = useState(null);
@@ -205,7 +203,6 @@ export default function Generator() {
         const res = await fetch(url);
         const data = await res.json();
         const duration = Date.now() - start;
-        
         setStatus({ code: res.status, time: duration });
         setResponse(data);
       } catch (err) {
@@ -224,47 +221,26 @@ export default function Generator() {
               <span className={`text-xs font-bold px-2 py-1 rounded ${method === 'GET' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{method}</span>
               <code className="text-sm font-mono text-gray-700 break-all">{url}</code>
             </div>
-            <button 
-              onClick={runRequest}
-              disabled={isLoading}
-              className="flex items-center space-x-1 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <div className="w-0 h-0 border-l-[6px] border-l-gray-600 border-y-[4px] border-y-transparent ml-0.5" />
-              )}
+            <button onClick={runRequest} disabled={isLoading} className="flex items-center space-x-1 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 disabled:opacity-50">
+              {isLoading ? <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> : <div className="w-0 h-0 border-l-[6px] border-l-gray-600 border-y-[4px] border-y-transparent ml-0.5" />}
               <span>Kör</span>
             </button>
           </div>
           <p className="text-sm text-gray-600">{desc}</p>
         </div>
-
         <div className="bg-slate-900 p-4 font-mono text-xs text-blue-300 overflow-x-auto relative group">
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-             <button onClick={() => copyToClipboard(`curl "https://luhn.se${url}"`)} className="p-1.5 bg-slate-800 text-slate-400 rounded hover:text-white">
-                <Copy size={12} />
-             </button>
+             <button onClick={() => copyToClipboard(`curl "https://luhn.se${url}"`)} className="p-1.5 bg-slate-800 text-slate-400 rounded hover:text-white"><Copy size={12} /></button>
           </div>
           <div>curl "https://luhn.se{url}"</div>
         </div>
-
         {response && (
           <div className="border-t border-gray-200 bg-slate-50 p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Response</span>
-              {status && (
-                <div className="flex space-x-3 text-xs font-mono">
-                  <span className={status.code === 200 ? 'text-green-600' : 'text-red-600'}>
-                    {status.code} OK
-                  </span>
-                  <span className="text-gray-400">{status.time}ms</span>
-                </div>
-              )}
+              {status && <div className="flex space-x-3 text-xs font-mono"><span className={status.code === 200 ? 'text-green-600' : 'text-red-600'}>{status.code} OK</span><span className="text-gray-400">{status.time}ms</span></div>}
             </div>
-            <pre className="font-mono text-xs text-gray-800 overflow-x-auto bg-white p-3 rounded-lg border border-gray-200">
-              {JSON.stringify(response, null, 2)}
-            </pre>
+            <pre className="font-mono text-xs text-gray-800 overflow-x-auto bg-white p-3 rounded-lg border border-gray-200">{JSON.stringify(response, null, 2)}</pre>
           </div>
         )}
       </div>
@@ -420,7 +396,7 @@ export default function Generator() {
                                 Läs API Dokumentation <ArrowRight size={16} className="ml-2" />
                             </Link>
                             <Link href="/personnummer" className="w-full sm:w-auto px-6 py-3 bg-white border border-gray-200 text-slate-700 text-sm font-semibold rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center justify-center">
-                                Kom igång
+                                Öppna Appen
                             </Link>
                         </div>
                     </div>
@@ -431,11 +407,10 @@ export default function Generator() {
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <FeatureCard href="/personnummer" title="Personnummer" desc="Matematiskt korrekta identiteter som passerar alla checksummor (Luhn), datumvalidering och könsregler." icon={User} />
+                    <FeatureCard href="/samordningsnummer" title="Samordningsnummer" desc="Redo för KYC-tester. Skapa giltiga nummer för onboarding av utländska medborgare." icon={Briefcase} />
                     <FeatureCard href="/organisation" title="Organisationsnummer" desc="Validerade bolag som uppfyller Bolagsverkets formkrav. Inklusive momsnummer (VAT)." icon={Building2} />
                     <FeatureCard href="/bank-account" title="Bank & Betalning" desc="Testa betalflöden riskfritt med giltiga bankgironummer och clearingnummer för svenska storbanker." icon={Wallet} />
-                    <FeatureCard href="/bankgiro" title="Bankgiro" desc="Bankgironummer från den säkra 998-serien för riskfri integrationstestning av betalflöden." icon={CreditCard} />
-                    <FeatureCard href="/plusgiro" title="Plusgiro" desc="Generera giltiga plusgironummer för legacy-system och fakturering." icon={CreditCard} />
-                    <FeatureCard href="/ocr" title="OCR-nummer" desc="Generera OCR-referensnummer med Luhn-kontroll och längdcheck för faktureringstester." icon={ScanLine} />
                     <FeatureCard href="/api-docs" title="Automation & API" desc="Byggd för CI/CD. Integrera direkt i dina GitHub Actions eller testskript med en enkel curl." icon={Server} />
                     <FeatureCard href="/validator" title="Validerare" desc="Universal validering. Felsök felaktig data direkt genom att kontrollera format och checksummor i realtid." icon={ShieldCheck} />
                 </div>
@@ -457,25 +432,23 @@ export default function Generator() {
               </div>
             ) : activeTab === 'api' ? (
               <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden p-8">
+                <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-100 text-left">
+                    <div className="prose max-w-none text-gray-600 text-sm leading-relaxed">
+                        <p>Ett REST-API byggt för utvecklare. Inga nycklar, ingen auth, generösa gränser (Fair Use). Anropa våra endpoints direkt från din frontend, backend eller testsvit med fullt CORS-stöd. För att skydda tjänsten tillämpar vi en rate-limit på 60 anrop per minut.</p>
+                    </div>
+                    <a href="/swagger.json" target="_blank" className="flex items-center space-x-2 px-4 py-2 bg-slate-50 border border-gray-200 text-gray-600 text-xs font-bold rounded-lg hover:bg-slate-100 hover:text-gray-900 transition-all ml-4 shrink-0">
+                        <Download size={14} />
+                        <span>OpenAPI Spec</span>
+                    </a>
+                </div>
                 <div className="prose max-w-none text-gray-600 text-left">
-                  <p className="mb-8">
-                    Ett REST-API byggt för utvecklare. Inga nycklar, ingen auth, generösa gränser (Fair Use). Anropa våra endpoints direkt från din frontend, backend eller testsvit med fullt CORS-stöd. För att skydda tjänsten tillämpar vi en rate-limit på 60 anrop per minut.
-                  </p>
-
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <Server size={20} className="mr-2" />
-                    Generering
-                  </h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center"><Server size={20} className="mr-2" />Generering</h3>
                   <EndpointExample method="GET" url="/api/generate?type=personnummer" desc="Generera en slumpmässig syntetisk person med ett giltigt Personnummer." />
                   <EndpointExample method="GET" url="/api/generate?type=company" desc="Generera ett slumpmässigt företag med giltigt Organisationsnummer och Momsnummer." />
                   <EndpointExample method="GET" url="/api/generate?type=personnummer&count=5" desc="Batch-generering: Hämta 5 personnummer i en lista." />
                   <EndpointExample method="GET" url="/api/generate?type=personnummer&minYear=1990&maxYear=2000" desc="Filtrera: Hämta personnummer för personer födda mellan 1990 och 2000." />
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm"><strong>Typer:</strong> <code>personnummer</code>, <code>samordningsnummer</code>, <code>company</code>, <code>bankgiro</code>, <code>bank_account</code>, <code>ocr</code>.</div>
-                  <hr className="my-8 border-gray-100"/>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <ShieldCheck size={20} className="mr-2" />
-                    Validering
-                  </h3>
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm"><strong>Typer:</strong> <code>personnummer</code>, <code>samordningsnummer</code>, <code>company</code>, <code>bankgiro</code>, <code>bank_account</code>, <code>ocr</code>, <code>plusgiro</code>.</div>
+                  <hr className="my-8 border-gray-100"/><h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center"><ShieldCheck size={20} className="mr-2" />Validering</h3>
                   <EndpointExample method="GET" url="/api/validate?type=ssn&value=199001011234" desc="Validera ett Personnummer (Längd, Luhn, Datum)." />
                   <EndpointExample method="GET" url="/api/validate?type=account&value=8105&value2=123456789" desc="Validera ett Bankkonto (Clearing + Kontonummer)." />
                 </div>
@@ -558,6 +531,14 @@ export default function Generator() {
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-6"><CodeBlock label="Plusgiro" value={data?.plusgiro} /></div>
                         <div className="space-y-6"><CodeBlock label="Bank" value={data?.bank} /></div>
+                    </div>
+                    ) : activeTab === 'ocr' ? (
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-6"><CodeBlock label="OCR-nummer" value={data?.ocr} /></div>
+                        <div className="space-y-6">
+                            <CodeBlock label="Längd" value={data?.length} />
+                            <CodeBlock label="Längdcheck (Hård)" value={data?.lengthCheck ? 'Ja' : 'Nej'} />
+                        </div>
                     </div>
                     ) : (
                     <div className="grid gap-6 md:grid-cols-2">

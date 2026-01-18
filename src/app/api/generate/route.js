@@ -1,32 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getOfficialIdentity } from '../../../lib/data-provider';
 
-// Helper to convert object to simplified XML
-function toXML(data) {
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n';
-    
-    const serialize = (obj) => {
-        let str = '';
-        if (Array.isArray(obj)) {
-            obj.forEach(item => {
-                str += `  <item>\n${serialize(item)}  </item>\n`;
-            });
-        } else if (typeof obj === 'object' && obj !== null) {
-            Object.entries(obj).forEach(([key, value]) => {
-                if (typeof value === 'object') {
-                    str += `    <${key}>\n${serialize(value)}    </${key}>\n`;
-                } else {
-                    str += `    <${key}>${value}</${key}>\n`;
-                }
-            });
-        }
-        return str;
-    };
-
-    xml += serialize(data);
-    xml += '</root>';
-    return xml;
-}
+/**
+ * API v3 - Streaming Support
+ * Handles large-scale data generation without memory issues.
+ */
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -37,32 +15,85 @@ export async function GET(request) {
   const minYear = searchParams.get('minYear');
   const maxYear = searchParams.get('maxYear');
   
-  // Batch
+  // Count - increased limit to 100k
   let count = parseInt(searchParams.get('count') || '1');
   if (count < 1) count = 1;
-  if (count > 500) count = 500; // Cap at 500
+  if (count > 100000) count = 100000; 
 
-  // Format
   const format = searchParams.get('format') || 'json';
 
-  const results = [];
-  
-  for (let i = 0; i < count; i++) {
+  // For small requests, keep it simple
+  if (count === 1 && format === 'json') {
       const identity = getOfficialIdentity(type, { gender, minYear, maxYear });
-      if (identity) results.push(identity);
+      return NextResponse.json(identity);
   }
 
-  if (results.length === 0) {
-    return NextResponse.json({ error: 'Failed to generate identity' }, { status: 500 });
-  }
+  // For large requests, use Streaming
+  const encoder = new TextEncoder();
+  
+  const stream = new ReadableStream({
+    async start(controller) {
+      if (format === 'json') {
+        controller.enqueue(encoder.encode('['));
+      } else if (format === 'csv') {
+        // CSV Header - adjust based on type
+        let header = 'ssn,firstName,lastName,gender,street,zip,city\n';
+        if (type === 'company') header = 'orgNumber,name,vatNumber\n';
+        if (type === 'bankgiro') header = 'bankgiro,bank\n';
+        if (type === 'plusgiro') header = 'plusgiro,bank\n';
+        if (type === 'bank_account') header = 'bank,clearing,account\n';
+        if (type === 'ocr') header = 'ocr,length,lengthCheck\n';
+        controller.enqueue(encoder.encode(header));
+      }
 
-  const responseData = count === 1 ? results[0] : results;
+      for (let i = 0; i < count; i++) {
+        const identity = getOfficialIdentity(type, { gender, minYear, maxYear });
+        if (!identity) continue;
 
-  if (format === 'xml') {
-      return new NextResponse(toXML(responseData), {
-          headers: { 'Content-Type': 'application/xml' }
-      });
-  }
+        let chunk = '';
+        if (format === 'json') {
+          chunk = (i > 0 ? ',' : '') + JSON.stringify(identity);
+        } else if (format === 'csv') {
+          // Flatten object to CSV line
+          if (type === 'company') {
+            chunk = `${identity.orgNumber},"${identity.name}",${identity.vatNumber}\n`;
+          } else if (type === 'bankgiro') {
+            chunk = `${identity.bankgiro},"${identity.bank}"\n`;
+          } else if (type === 'plusgiro') {
+            chunk = `${identity.plusgiro},"${identity.bank}"\n`;
+          } else if (type === 'bank_account') {
+            chunk = `"${identity.bank}",${identity.clearing},${identity.account}\n`;
+          } else if (type === 'ocr') {
+            chunk = `${identity.ocr},${identity.length},${identity.lengthCheck}\n`;
+          } else {
+            // Person
+            chunk = `${identity.ssn},"${identity.firstName}","${identity.lastName}",${identity.gender},"${identity.address.street}",${identity.address.zip},"${identity.address.city}"\n`;
+          }
+        }
 
-  return NextResponse.json(responseData);
+        controller.enqueue(encoder.encode(chunk));
+        
+        // Yield to event loop every 100 items to prevent blocking
+        if (i % 100 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+
+      if (format === 'json') {
+        controller.enqueue(encoder.encode(']'));
+      }
+      controller.close();
+    },
+  });
+
+  const contentType = format === 'csv' ? 'text/csv' : 'application/json';
+  const fileName = `luhn_export_${type}.${format}`;
+
+  return new Response(stream, {
+    headers: { 
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="${fileName}"`, 
+        'Transfer-Encoding': 'chunked'
+    },
+  });
 }

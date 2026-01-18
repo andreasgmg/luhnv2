@@ -1,35 +1,19 @@
 /**
- * SCB:s vanligaste förnamn och efternamn i Sverige (Urval av topplistor)
+ * SCB:s vanligaste förnamn och efternamn i Sverige.
+ * Utökad lista för att minimera kollisioner vid batch-generering.
  */
 
 export const FIRST_NAMES = {
   male: [
-    'Lars', 'Mikael', 'Anders', 'Johan', 'Erik', 'Per', 'Karl', 'Thomas', 'Jan', 'Daniel', 
-    'Fredrik', 'Hans', 'Peter', 'Stefan', 'Magnus', 'Mats', 'Nils', 'Bengt', 'Bo', 'Sven', 
-    'Björn', 'Olof', 'Gunnar', 'Lennart', 'Ulf', 'Christer', 'Leif', 'Joakim', 'Martin', 'Andreas', 
-    'Kjell', 'Stig', 'Tommy', 'Jonas', 'Rickard', 'Patrik', 'Rolf', 'Torbjörn', 'Arne', 'Håkan', 
-    'Göran', 'Kent', 'Henrik', 'Claes', 'Kurt', 'Åke', 'Roger', 'Bernt', 'Ingemar', 'Ove', 
-    'Robert', 'Christian', 'Marcus', 'Mattias', 'Niklas', 'Emil', 'Alexander', 'William', 'Lucas', 'Oscar', 
-    'Hugo', 'Elias', 'Viktor', 'Filip', 'Simon', 'Anton', 'Isak', 'Axel', 'Ludvig', 'Oliver', 
-    'Gustav', 'David', 'Rasmus', 'Albin', 'Sebastian', 'Jonathan', 'Tobias', 'Robin', 'Linus', 'Christoffer',
-    'Adam', 'Jakob', 'Pontus', 'Jesper', 'Kevin', 'Max', 'Liam', 'Felix', 'Leo', 'Noah',
-    'Charlie', 'Melvin', 'Olle', 'Nils', 'Alfred', 'Theo', 'Arvid', 'Elliot', 'Edvin', 'Ebbot'
+    'Lars', 'Mikael', 'Anders', 'Johan', 'Erik', 'Per', 'Karl', 'Thomas', 'Jan', 'Daniel', 'Fredrik', 'Hans', 'Peter', 'Stefan', 'Magnus', 'Mats', 'Nils', 'Bengt', 'Bo', 'Sven', 'Björn', 'Olof', 'Gunnar', 'Lennart', 'Ulf', 'Christer', 'Leif', 'Joakim', 'Martin', 'Andreas', 'Kjell', 'Stig', 'Tommy', 'Jonas', 'Rickard', 'Patrik', 'Rolf', 'Torbjörn', 'Arne', 'Håkan', 'Göran', 'Kent', 'Henrik', 'Claes', 'Kurt', 'Åke', 'Roger', 'Bernt', 'Ingemar', 'Ove', 'Robert', 'Christian', 'Marcus', 'Mattias', 'Niklas', 'Emil', 'Alexander', 'William', 'Lucas', 'Oscar', 'Hugo', 'Elias', 'Viktor', 'Filip', 'Simon', 'Anton', 'Isak', 'Axel', 'Ludvig', 'Oliver', 'Gustav', 'David', 'Rasmus', 'Albin', 'Sebastian', 'Jonathan', 'Tobias', 'Robin', 'Linus', 'Christoffer', 'Adam', 'Jakob', 'Pontus', 'Jesper', 'Kevin', 'Max', 'Liam', 'Felix', 'Leo', 'Noah', 'Charlie', 'Melvin', 'Olle', 'Alfred', 'Theo', 'Arvid', 'Elliot', 'Edvin', 'Ebbot', 'Ture', 'Sixten', 'Viggo', 'Noel', 'Alvin', 'Loke', 'Jasper', 'Milo', 'Adrian', 'Love', 'Wilhelm', 'Benjamin', 'Harry', 'Ebbe', 'Malte', 'Gabriel', 'Frans', 'Melker', 'Colin', 'Vidar', 'Sam', 'Elton', 'Hjalmar', 'Hannes', 'Vincent', 'Josef', 'Dante', 'Sigge', 'Tage', 'Ivar', 'Julian', 'August', 'Elis', 'Levi', 'Matteo', 'Edvard', 'Folke', 'Loui', 'Kian', 'Åke', 'Holger', 'Ture', 'Bror', 'Allan', 'Valter', 'Ruben', 'Tore', 'Bill', 'Didrik', 'Ernst', 'Ewan', 'Joar', 'Knut', 'Lage', 'Lo', 'Svante', 'Vilgot', 'Östen', 'Stellan', 'Egon', 'Elvin', 'Fabian', 'Frank', 'Gideon', 'Gottfrid', 'Helmer', 'Herbert', 'Hilding', 'Hilmer', 'Hjalle', 'Ilon', 'Ingolf', 'John', 'Konrad', 'Lave', 'Manne', 'Måns', 'Napoleon', 'Ossian', 'Ragnar', 'Reidar', 'Sigurd', 'Sune', 'Sören', 'Thor', 'Tor', 'Truls', 'Uno', 'Valdemar', 'Verner', 'Vide', 'Vilhelm'
   ],
   female: [
-    'Maria', 'Anna', 'Margareta', 'Elisabeth', 'Eva', 'Birgitta', 'Kristina', 'Karin', 'Lena', 'Marie', 
-    'Ingrid', 'Sara', 'Sofia', 'Kerstin', 'Marianne', 'Annika', 'Susanne', 'Monica', 'Ulla', 'Gunilla', 
-    'Katarina', 'Inger', 'Linda', 'Malin', 'Jenny', 'Carina', 'Åsa', 'Elin', 'Emma', 'Johanna', 
-    'Barbro', 'Siv', 'Britt', 'Ann', 'Camilla', 'Agneta', 'Helena', 'Ing-Marie', 'Gun', 'Maj', 
-    'Berit', 'Liselotte', 'Annette', 'Ida', 'Sandra', 'Julia', 'Alice', 'Maja', 'Linnéa', 'Agnes', 
-    'Elsa', 'Astrid', 'Wilma', 'Ebba', 'Olivia', 'Alma', 'Klara', 'Molly', 'Ellen', 'Saga', 
-    'Alva', 'Stella', 'Vera', 'Selma', 'Signe', 'Ellinor', 'Amanda', 'Frida', 'Emelie', 'Hanna', 
-    'Lovisa', 'Matilda', 'Nora', 'Nellie', 'Alicia', 'Tyra', 'Freja', 'Meja', 'Lilly', 'Ines',
-    'Siri', 'Sigrid', 'Leah', 'Iris', 'Ester', 'Lova', 'Juni', 'Liv', 'Rut', 'Majken'
+    'Maria', 'Anna', 'Margareta', 'Elisabeth', 'Eva', 'Birgitta', 'Kristina', 'Karin', 'Lena', 'Marie', 'Ingrid', 'Sara', 'Sofia', 'Kerstin', 'Marianne', 'Annika', 'Susanne', 'Monica', 'Ulla', 'Gunilla', 'Katarina', 'Inger', 'Linda', 'Malin', 'Jenny', 'Carina', 'Åsa', 'Elin', 'Emma', 'Johanna', 'Barbro', 'Siv', 'Britt', 'Ann', 'Camilla', 'Agneta', 'Helena', 'Ing-Marie', 'Gun', 'Maj', 'Berit', 'Liselotte', 'Annette', 'Ida', 'Sandra', 'Julia', 'Alice', 'Maja', 'Linnéa', 'Agnes', 'Elsa', 'Astrid', 'Wilma', 'Ebba', 'Olivia', 'Alma', 'Klara', 'Molly', 'Ellen', 'Saga', 'Alva', 'Stella', 'Vera', 'Selma', 'Signe', 'Ellinor', 'Amanda', 'Frida', 'Emelie', 'Hanna', 'Lovisa', 'Matilda', 'Nora', 'Nellie', 'Alicia', 'Tyra', 'Freja', 'Meja', 'Lilly', 'Ines', 'Siri', 'Sigrid', 'Leah', 'Iris', 'Ester', 'Lova', 'Juni', 'Liv', 'Rut', 'Majken', 'Märta', 'Svea', 'Inga', 'Elise', 'Lykke', 'Joline', 'Livia', 'Cornelia', 'Bianca', 'Hedda', 'Thea', 'Elvira', 'Edit', 'Hilma', 'Tilde', 'Stina', 'Filippa', 'Moa', 'Emilia', 'Nathalie', 'Isabelle', 'Victoria', 'Gabriella', 'Daniella', 'Alexandra', 'Rebecka', 'Angelica', 'Josefin', 'Madeleine', 'Veronica', 'Therese', 'Paulina', 'Ellie', 'Nova', 'My', 'Ronja', 'Tindra', 'Minna', 'Tuva', 'Wilda', 'Smilla', 'Tove', 'Engla', 'Lina', 'Lisa', 'Eira', 'Sally', 'Inez', 'Penny', 'Cleo', 'Lo', 'Ilse', 'Idun', 'Aina', 'Anita', 'Ann-Christin', 'Ann-Marie', 'Ann-Sofi', 'Anne', 'Annelie', 'Anneli', 'Anette', 'Birgit', 'Bodil', 'Britt-Marie', 'Catrin', 'Charlotte', 'Christin', 'Christina', 'Doris', 'Eivor', 'Eleonora', 'Erika', 'Ewa', 'Gertrud', 'Gerd', 'Gudrun', 'Gunborg', 'Gunhild', 'Gunnel', 'Gunvor', 'Göril', 'Harriet', 'Helen', 'Hjördis', 'Hulda', 'Ingegerd', 'Irene', 'Irma', 'Jessica', 'Jill', 'Judith', 'Kajsa', 'Karolina', 'Kerstina', 'Kicki', 'Kim', 'Laila', 'Lillemor', 'Lilian', 'Lisbeth', 'Louise', 'Magdalena', 'Maj-Britt', 'Margit', 'Margot', 'Marita', 'Maud', 'May', 'Mona', 'Märit', 'Ninni', 'Pia', 'Ragnhild', 'Rigmor', 'Rose-Marie', 'Rut', 'Sabina', 'Sanna', 'Siw', 'Sofie', 'Solbritt', 'Sonja', 'Sylvia', 'Tina', 'Titti', 'Ulrika', 'Ullabritt', 'Vanja', 'Viktoria', 'Viveca', 'Ylva', 'Yvonne', 'Åse'
   ],
 };
 
 /**
- * SCB:s vanligaste efternamn i Sverige
+ * SCB:s vanligaste efternamn i Sverige.
  */
 export const LAST_NAMES = [
   'Andersson', 'Johansson', 'Karlsson', 'Nilsson', 'Eriksson', 'Larsson', 'Olsson', 'Persson', 'Svensson', 'Gustafsson',
@@ -41,7 +25,39 @@ export const LAST_NAMES = [
   'Claesson', 'Nordström', 'Ahmed', 'Mårtensson', 'Lundström', 'Viklund', 'Björklund', 'Eliasson', 'Pålsson', 'Berggren',
   'Sandström', 'Nordin', 'Lund', 'Ström', 'Åkesson', 'Ekström', 'Hermansson', 'Sundberg', 'Hedlund', 'Sjögren', 
   'Dahlberg', 'Hellström', 'Blom', 'Abrahamsson', 'Martinsson', 'Öberg', 'Andreasson', 'Strömberg', 'Månsson', 'Hassan',
-  'Sundström', 'Åberg', 'Ek', 'Norberg', 'Lindholm', 'Dahl', 'Jonsson', 'Falk', 'Söderström', 'Boman'
+  'Sundström', 'Åberg', 'Ek', 'Norberg', 'Lindholm', 'Dahl', 'Jonsson', 'Falk', 'Söderström', 'Boman', 'Östlund', 
+  'Ljung', 'Sundqvist', 'Nyman', 'Holmgren', 'Löf', 'Törnqvist', 'Wahlberg', 'Hedman', 'Palm', 'Ekman', 'Lilja', 'Hagberg', 
+  'Göransson', 'Hellberg', 'Sjögren', 'Skoglund', 'Dahlgren', 'Hedberg', 'Björkman', 'Blomberg', 'Ekberg', 'Åström', 
+  'Moberg', 'Boström', 'Ljungberg', 'Söderholm', 'Wall', 'Strömberg', 'Kjellsson', 'Mans', 'Stenberg', 'Bern', 'Berntsson',
+  'Levin', 'Holmström', 'Rosen', 'Dahlström', 'Skog', 'Erlandsson', 'Melin', 'Westin', 'Fagerberg', 'Edlund', 'Thulin', 
+  'Borg', 'Lundh', 'Palmqvist', 'Brodin', 'Marklund', 'Malm', 'Norell', 'Fall', 'Sandin', 'Hed', 'Söderlund', 'Sundin', 
+  'Alm', 'Sjöholm', 'Backman', 'Englund', 'Ferm', 'Holmqvist', 'Lindell', 'Ohlsson', 'Ståhl', 'Stark', 'Björck', 
+  'Lundmark', 'Rydberg', 'Westerberg', 'Bäck', 'Hägg', 'Kullberg', 'Lindblom', 'Sten', 'Fors', 'Lindström', 'Vallin', 
+  'Sjöström', 'Bergkvist', 'Ivarsson', 'Hjort', 'Norlin', 'Blixt', 'Borgström', 'Brink', 'Ceder', 'Edman', 'Ehn', 
+  'Ekdahl', 'Ekholm', 'Ekstrand', 'Elf', 'Enqvist', 'Ericsson', 'Fager', 'Fast', 'Fogelberg', 'Forsman', 'Frank', 
+  'Frisk', 'Gill', 'Granberg', 'Granlund', 'Gullberg', 'Hagström', 'Hall', 'Hallberg', 'Hammar', 'Hammarström', 
+  'Hedin', 'Hellgren', 'Henningsson', 'Hjert', 'Hoff', 'Hult', 'Hultgren', 'Hultman', 'Höglund', 'Högberg', 'Ingelsson', 
+  'Isra', 'Jarl', 'Johannesson', 'Kallin', 'Kamp', 'Karlberg', 'Klang', 'Kling', 'Knutsson', 'Krantz', 'Krook', 'Kull', 
+  'Kvist', 'Käll', 'Lager', 'Lantz', 'Lemne', 'Liljeblad', 'Lindblad', 'Lindbom', 'Linde', 'Lindman', 'Lindskog', 
+  'Lindvall', 'Ljunggren', 'Ljungqvist', 'Lundell', 'Löfberg', 'Löfgren', 'Malmberg', 'Malmgren', 'Malmqvist', 
+  'Melander', 'Modin', 'Molander', 'Molin', 'Morin', 'Möller', 'Nord', 'Nordberg', 'Nordgren', 'Nordlund', 'Nordqvist', 
+  'Norman', 'Ny', 'Nygren', 'Nylander', 'Nylén', 'Nylund', 'Oden', 'Odén', 'Olander', 'Olin', 'Paulsson', 'Pihl', 
+  'Pihlqvist', 'Pihlblad', 'Qvist', 'Rask', 'Rehn', 'Ring', 'Risberg', 'Rosberg', 'Rosell', 'Rosén', 'Roth', 'Rundqvist', 
+  'Runn', 'Ryd', 'Rydell', 'Rydén', 'Sahlberg', 'Sahlström', 'Salomonsson', 'Samuelsson', 'Sand', 'Sandell', 
+  'Sandgren', 'Schen', 'Schön', 'Seger', 'Selander', 'Sellin', 'Sjödin', 'Sjölund', 'Sjöstedt', 'Sjöstrand', 'Sköld', 
+  'Sköldberg', 'Solberg', 'Sparr', 'Stenlund', 'Stenmark', 'Stenström', 'Strand', 'Strandberg', 'Strid', 'Stridh', 
+  'Ström', 'Sty', 'Sund', 'Sundbom', 'Sundell', 'Sundgren', 'Sundvall', 'Svan', 'Svanberg', 'Svedberg', 'Svärd', 
+  'Säf', 'Söder', 'Södergren', 'Söderqvist', 'Tell', 'Teng', 'Thorén', 'Thorn', 'Thorsson', 'Thun', 'Thunberg', 
+  'Ting', 'Toll', 'Torn', 'Torp', 'Tran', 'Troll', 'Trygg', 'Törn', 'Törnblom', 'Udd', 'Ull', 'Ulm', 'Unge', 'Vall', 
+  'Vang', 'Vann', 'Varg', 'Vedin', 'Vester', 'Vestin', 'Vide', 'Vik', 'Vikt', 'Vil', 'Vim', 'Vin', 'Vir', 'Vist', 
+  'Vit', 'Vix', 'Vogel', 'Våg', 'Vång', 'Värn', 'Väst', 'Väster', 'Wallberg', 'Wallen', 'Wallgren', 'Wallin', 'Wallman', 
+  'Wallner', 'Wallström', 'Wann', 'Warg', 'Wedin', 'Wester', 'Westerlund', 'Westin', 'Westling', 'Westlund', 'Westman', 
+  'Wiberg', 'Wick', 'Wid', 'Widell', 'Widen', 'Widén', 'Widlund', 'Widman', 'Wik', 'Wikberg', 'Wiklund', 'Wikman', 
+  'Wikner', 'Winberg', 'Wind', 'Wist', 'Woll', 'Wret', 'Wulf', 'Wåg', 'Wång', 'Wärn', 'Wäst', 'Yng', 'Zack', 'Zak', 
+  'Zell', 'Zetter', 'Zetterberg', 'Zettergren', 'Zetterlund', 'Zetterström', 'Åberg', 'Ågren', 'Åhlin', 'Åhman', 'Åker', 
+  'Åkerberg', 'Åkerblom', 'Åkerlund', 'Åkerman', 'Ålander', 'Ålund', 'Åman', 'Åsberg', 'Åslund', 'Åstrand', 'Äng', 
+  'Öberg', 'Ögren', 'Öhman', 'Öhrn', 'Öman', 'Örn', 'Öst', 'Östberg', 'Öster', 'Österberg', 'Östergren', 'Österlund', 
+  'Östling', 'Östlund', 'Östman'
 ];
 
 /**

@@ -98,8 +98,6 @@ export function validateSwedishBank(clearing, account) {
                   errorMsg = 'Felaktig kontrollsiffra i clearingnumret (5:e siffran)';
               }
           }
-          // Note: If cl is 4 digits, we assume it's incomplete or entered without check digit,
-          // but we still proceed to check the account. 
           
           // Account check: Mod10 on account part
           const validAccount = mod10(ac);
