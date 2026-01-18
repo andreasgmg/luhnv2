@@ -4,12 +4,13 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
-import { Copy, Check, Menu, X, Terminal, Briefcase, User, Building2, CreditCard, ShieldCheck, Wallet, Code2, Server, Home, ArrowRight, Database, Heart } from 'lucide-react';
+import { Copy, Check, Menu, X, Terminal, Briefcase, User, Building2, CreditCard, ShieldCheck, Wallet, Code2, Server, Home, ArrowRight, Database, Heart, ScanLine } from 'lucide-react';
 import { 
     validatePersonnummer, 
     validateOrgNumber, 
     validateVAT, 
     validateBankgiro, 
+    validatePlusgiro,
     validateBankAccount 
 } from '../lib/utils';
 
@@ -86,7 +87,9 @@ export default function Generator() {
       case '/samordningsnummer': return 'samordningsnummer';
       case '/organisation': return 'company';
       case '/bankgiro': return 'bankgiro';
+      case '/plusgiro': return 'plusgiro';
       case '/bank-account': return 'bank_account';
+      case '/ocr': return 'ocr';
       default: return 'personnummer';
     }
   };
@@ -96,6 +99,7 @@ export default function Generator() {
     if (path.includes('/validator/organisation')) return 'org';
     if (path.includes('/validator/moms')) return 'vat';
     if (path.includes('/validator/bankgiro')) return 'bg';
+    if (path.includes('/validator/plusgiro')) return 'pg';
     if (path.includes('/validator/bankkonto')) return 'account';
     return 'ssn';
   };
@@ -143,6 +147,7 @@ export default function Generator() {
     else if (validatorType === 'org') res = validateOrgNumber(valInput);
     else if (validatorType === 'vat') res = validateVAT(valInput);
     else if (validatorType === 'bg') res = validateBankgiro(valInput);
+    else if (validatorType === 'pg') res = validatePlusgiro(valInput);
     else if (validatorType === 'account') res = validateBankAccount(valInput, valInput2);
     setValResult(res);
   }, [validatorType, valInput, valInput2, activeTab]);
@@ -188,18 +193,83 @@ export default function Generator() {
     </div>
   );
 
-  const EndpointExample = ({ method, url, desc }) => (
-    <div className="mb-8 text-left">
-      <div className="flex items-center space-x-2 mb-2">
-        <span className={`text-xs font-bold px-2 py-1 rounded ${method === 'GET' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{method}</span>
-        <code className="text-sm font-mono text-gray-700">{url}</code>
+  const EndpointExample = ({ method, url, desc }) => {
+    const [response, setResponse] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [status, setStatus] = useState(null);
+
+    const runRequest = async () => {
+      setIsLoading(true);
+      try {
+        const start = Date.now();
+        const res = await fetch(url);
+        const data = await res.json();
+        const duration = Date.now() - start;
+        
+        setStatus({ code: res.status, time: duration });
+        setResponse(data);
+      } catch (err) {
+        setStatus({ code: 'ERR', time: 0 });
+        setResponse({ error: 'Kunde inte nå servern' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    return (
+      <div className="mb-8 border border-gray-200 rounded-xl overflow-hidden bg-white">
+        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <span className={`text-xs font-bold px-2 py-1 rounded ${method === 'GET' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{method}</span>
+              <code className="text-sm font-mono text-gray-700 break-all">{url}</code>
+            </div>
+            <button 
+              onClick={runRequest}
+              disabled={isLoading}
+              className="flex items-center space-x-1 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isLoading ? (
+                <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <div className="w-0 h-0 border-l-[6px] border-l-gray-600 border-y-[4px] border-y-transparent ml-0.5" />
+              )}
+              <span>Kör</span>
+            </button>
+          </div>
+          <p className="text-sm text-gray-600">{desc}</p>
+        </div>
+
+        <div className="bg-slate-900 p-4 font-mono text-xs text-blue-300 overflow-x-auto relative group">
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+             <button onClick={() => copyToClipboard(`curl "https://luhn.se${url}"`)} className="p-1.5 bg-slate-800 text-slate-400 rounded hover:text-white">
+                <Copy size={12} />
+             </button>
+          </div>
+          <div>curl "https://luhn.se{url}"</div>
+        </div>
+
+        {response && (
+          <div className="border-t border-gray-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Response</span>
+              {status && (
+                <div className="flex space-x-3 text-xs font-mono">
+                  <span className={status.code === 200 ? 'text-green-600' : 'text-red-600'}>
+                    {status.code} OK
+                  </span>
+                  <span className="text-gray-400">{status.time}ms</span>
+                </div>
+              )}
+            </div>
+            <pre className="font-mono text-xs text-gray-800 overflow-x-auto bg-white p-3 rounded-lg border border-gray-200">
+              {JSON.stringify(response, null, 2)}
+            </pre>
+          </div>
+        )}
       </div>
-      <p className="text-sm text-gray-600 mb-3">{desc}</p>
-      <div className="bg-slate-900 rounded-lg p-4 font-mono text-xs text-blue-300 overflow-x-auto">
-        curl "https://luhn.se{url}"
-      </div>
-    </div>
-  );
+    );
+  };
 
   const FeatureCard = ({ href, title, desc, icon: Icon }) => (
     <Link href={href} className="group h-full p-6 bg-white border border-gray-200 rounded-2xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/5 transition-all flex flex-col text-left">
@@ -220,6 +290,8 @@ export default function Generator() {
     if (activeTab === 'api') return 'API-referens';
     if (activeTab === 'company') return 'Organisationsnummer';
     if (activeTab === 'bank_account') return 'Bankkonto';
+    if (activeTab === 'plusgiro') return 'Plusgiro';
+    if (activeTab === 'ocr') return 'OCR-nummer';
     return activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
   };
 
@@ -230,7 +302,9 @@ export default function Generator() {
       case 'samordningsnummer': return 'Validera stöd för individer utan personnummer. Vi följer Skatteverkets standard (dag + 60) för korrekta KYC- och onboarding-tester.';
       case 'company': return 'Mocka B2B-flöden med realistiska bolag. Vi genererar matematiskt korrekta organisationsnummer och matchande SE-momsnummer (VAT).';
       case 'bankgiro': return 'Säkra dina betalningstester. Vi använder Bankgirots dedikerade testserie (998-xxxx) för att garantera att du aldrig råkar använda ett skarpt nummer.';
+      case 'plusgiro': return 'Generera giltiga svenska plusgironummer för test av äldre betalsystem.';
       case 'bank_account': return 'Generera kontonummer som passerar bankernas validering. Vi stöder korrekta clearing-serier för SEB, Swedbank, Nordea, Handelsbanken m.fl.';
+      case 'ocr': return 'Testa OCR-validering i dina betalflöden. Vi skapar giltiga referensnummer med Luhn-kontroll och valfri längdcheck (hård/mjuk kontroll).';
       case 'validator': return 'Felsök felaktig data direkt. Klistra in ett nummer och se omedelbart om längd, datumformat och Luhn-checksumma stämmer.';
       case 'api': return 'Automatisera din testdata. Integrera våra generatorer direkt i din CI/CD-pipeline helt utan API-nycklar eller begränsningar.';
       default: return 'Generera giltig, verifierbar testdata för svenska system.';
@@ -274,7 +348,9 @@ export default function Generator() {
             <div className="px-3 mt-8 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Företag & Bank</div>
             <NavItem href="/organisation" id="company" label="Organisationsnr" icon={Building2} />
             <NavItem href="/bankgiro" id="bankgiro" label="Bankgiro" icon={CreditCard} />
+            <NavItem href="/plusgiro" id="plusgiro" label="Plusgiro" icon={CreditCard} />
             <NavItem href="/bank-account" id="bank_account" label="Bankkonto" icon={Wallet} />
+            <NavItem href="/ocr" id="ocr" label="OCR-nummer" icon={ScanLine} />
             <div className="px-3 mt-8 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Verktyg</div>
             <NavItem href="/validator" id="validator" label="Validerare" icon={ShieldCheck} />
             <div className="px-3 mt-8 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Utvecklare</div>
@@ -355,10 +431,11 @@ export default function Generator() {
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <FeatureCard href="/personnummer" title="Personnummer" desc="Matematiskt korrekta identiteter som passerar alla checksummor (Luhn), datumvalidering och könsregler." icon={User} />
-                    <FeatureCard href="/samordningsnummer" title="Samordningsnummer" desc="Redo för KYC-tester. Skapa giltiga nummer för onboarding av utländska medborgare." icon={Briefcase} />
                     <FeatureCard href="/organisation" title="Organisationsnummer" desc="Validerade bolag som uppfyller Bolagsverkets formkrav. Inklusive momsnummer (VAT)." icon={Building2} />
                     <FeatureCard href="/bank-account" title="Bank & Betalning" desc="Testa betalflöden riskfritt med giltiga bankgironummer och clearingnummer för svenska storbanker." icon={Wallet} />
+                    <FeatureCard href="/bankgiro" title="Bankgiro" desc="Bankgironummer från den säkra 998-serien för riskfri integrationstestning av betalflöden." icon={CreditCard} />
+                    <FeatureCard href="/plusgiro" title="Plusgiro" desc="Generera giltiga plusgironummer för legacy-system och fakturering." icon={CreditCard} />
+                    <FeatureCard href="/ocr" title="OCR-nummer" desc="Generera OCR-referensnummer med Luhn-kontroll och längdcheck för faktureringstester." icon={ScanLine} />
                     <FeatureCard href="/api-docs" title="Automation & API" desc="Byggd för CI/CD. Integrera direkt i dina GitHub Actions eller testskript med en enkel curl." icon={Server} />
                     <FeatureCard href="/validator" title="Validerare" desc="Universal validering. Felsök felaktig data direkt genom att kontrollera format och checksummor i realtid." icon={ShieldCheck} />
                 </div>
@@ -382,7 +459,7 @@ export default function Generator() {
               <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden p-8">
                 <div className="prose max-w-none text-gray-600 text-left">
                   <p className="mb-8">
-                    Ett REST-API byggt för utvecklare. Inga nycklar, ingen auth, inga begränsningar. Anropa våra endpoints direkt från din frontend, backend eller testsvit med fullt CORS-stöd.
+                    Ett REST-API byggt för utvecklare. Inga nycklar, ingen auth, generösa gränser (Fair Use). Anropa våra endpoints direkt från din frontend, backend eller testsvit med fullt CORS-stöd. För att skydda tjänsten tillämpar vi en rate-limit på 60 anrop per minut.
                   </p>
 
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
@@ -391,7 +468,7 @@ export default function Generator() {
                   </h3>
                   <EndpointExample method="GET" url="/api/generate?type=personnummer" desc="Generera en slumpmässig syntetisk person med ett giltigt Personnummer." />
                   <EndpointExample method="GET" url="/api/generate?type=company" desc="Generera ett slumpmässigt företag med giltigt Organisationsnummer och Momsnummer." />
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm"><strong>Typer:</strong> <code>personnummer</code>, <code>samordningsnummer</code>, <code>company</code>, <code>bankgiro</code>, <code>bank_account</code>.</div>
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm"><strong>Typer:</strong> <code>personnummer</code>, <code>samordningsnummer</code>, <code>company</code>, <code>bankgiro</code>, <code>bank_account</code>, <code>ocr</code>.</div>
                   <hr className="my-8 border-gray-100"/>
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                     <ShieldCheck size={20} className="mr-2" />
@@ -414,6 +491,7 @@ export default function Generator() {
                                 {id: 'org', label: 'Organisation', href: '/validator/organisation'},
                                 {id: 'vat', label: 'Moms (VAT)', href: '/validator/moms'},
                                 {id: 'bg', label: 'Bankgiro', href: '/validator/bankgiro'},
+                                {id: 'pg', label: 'Plusgiro', href: '/validator/plusgiro'},
                                 {id: 'account', label: 'Bankkonto', href: '/validator/bankkonto'}
                             ].map(t => (
                                 <Link key={t.id} href={t.href} className={`flex-1 flex items-center justify-center py-2 px-3 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${validatorType === t.id ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{t.label}</Link>
@@ -472,6 +550,11 @@ export default function Generator() {
                     ) : activeTab === 'bankgiro' ? (
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-6"><CodeBlock label="Bankgiro" value={data?.bankgiro} /></div>
+                        <div className="space-y-6"><CodeBlock label="Bank" value={data?.bank} /></div>
+                    </div>
+                    ) : activeTab === 'plusgiro' ? (
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-6"><CodeBlock label="Plusgiro" value={data?.plusgiro} /></div>
                         <div className="space-y-6"><CodeBlock label="Bank" value={data?.bank} /></div>
                     </div>
                     ) : (

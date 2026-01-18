@@ -3,11 +3,12 @@ import path from 'path';
 import { 
   FIRST_NAMES, 
   LAST_NAMES, 
-  COMPANY_PREFIXES, 
+  COMPANY_LOCATIONS, 
+  COMPANY_SECTORS, 
   COMPANY_SUFFIXES, 
   getRandomElement 
 } from './names.js';
-import { luhnCheck, BANK_RANGES } from './utils.js';
+import { luhnCheck, BANK_RANGES, generateOCR } from './utils.js';
 
 // Cache the data in memory
 let cachedData = {
@@ -90,6 +91,25 @@ export function generateBankgiro() {
     return `${full.slice(0, 3)}-${full.slice(3)}`;
 }
 
+export function generatePlusgiro() {
+    // Plusgiro: 2-8 digits total.
+    // Generate payload of length 1-7
+    const len = Math.floor(Math.random() * 7) + 1; 
+    let payload = '';
+    // Avoid starting with 0
+    payload += Math.floor(Math.random() * 9) + 1;
+    
+    for(let i=1; i<len; i++) {
+        payload += Math.floor(Math.random() * 10);
+    }
+    
+    const checkDigit = getLuhnDigit(payload);
+    const full = payload + checkDigit;
+    
+    // Format X-X, XX-X, XXX-X etc.
+    return `${full.slice(0, -1)}-${full.slice(-1)}`;
+}
+
 export function generateBankAccount() {
     const bank = getRandomElement(BANK_RANGES);
     const clearing = Math.floor(Math.random() * (bank.max - bank.min + 1)) + bank.min;
@@ -117,12 +137,34 @@ export function getOfficialIdentity(type = 'personnummer', genderFilter = null) 
   
   if (type === 'company') {
       const orgNumber = generateOrgNumber();
-      const prefix = getRandomElement(COMPANY_PREFIXES);
-      const suffix = getRandomElement(COMPANY_SUFFIXES);
       
+      // Generate Realistic Company Name
+      const template = Math.floor(Math.random() * 3);
+      let name = '';
+      
+      if (template === 0) {
+          // [Efternamn]s [Bransch] [Suffix] -> "Anderssons Rör AB"
+          const lastName = getRandomElement(LAST_NAMES);
+          const sector = getRandomElement(COMPANY_SECTORS);
+          const suffix = getRandomElement(COMPANY_SUFFIXES);
+          name = `${lastName}s ${sector} ${suffix}`;
+      } else if (template === 1) {
+          // [Ort] [Bransch] [Suffix] -> "Göteborgs Betong & Anläggning AB"
+          const loc = getRandomElement(COMPANY_LOCATIONS);
+          const sector = getRandomElement(COMPANY_SECTORS);
+          const suffix = getRandomElement(COMPANY_SUFFIXES);
+          name = `${loc} ${sector} ${suffix}`;
+      } else {
+          // [Bransch] & [Bransch] i [Ort] AB -> "Bygg & Måleri i Malmö AB"
+          const sec1 = getRandomElement(COMPANY_SECTORS);
+          const sec2 = getRandomElement(COMPANY_SECTORS);
+          const loc = getRandomElement(COMPANY_LOCATIONS).replace(/s$/, ''); // Remove genitive 's' roughly
+          name = `${sec1} & ${sec2} i ${loc} AB`;
+      }
+
       return {
           orgNumber,
-          name: `${prefix} ${suffix} AB`,
+          name: name,
           vatNumber: `SE${orgNumber.replace('-', '')}01`,
           type: 'company'
       };
@@ -137,11 +179,32 @@ export function getOfficialIdentity(type = 'personnummer', genderFilter = null) 
       };
   }
 
+  if (type === 'plusgiro') {
+      const plusgiro = generatePlusgiro();
+      return {
+          plusgiro,
+          bank: 'Plusgirot',
+          type: 'plusgiro'
+      };
+  }
+
   if (type === 'bank_account') {
       const account = generateBankAccount();
       return {
           ...account,
           type: 'bank_account'
+      };
+  }
+
+  if (type === 'ocr') {
+      const length = Math.floor(Math.random() * 20) + 6; // 6 to 25
+      const useLengthCheck = Math.random() > 0.5;
+      const ocr = generateOCR(length, useLengthCheck);
+      return {
+          ocr,
+          length,
+          lengthCheck: useLengthCheck,
+          type: 'ocr'
       };
   }
 

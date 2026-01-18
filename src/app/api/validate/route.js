@@ -4,6 +4,7 @@ import {
     validateOrgNumber, 
     validateVAT, 
     validateBankgiro, 
+    validatePlusgiro,
     validateBankAccount 
 } from '../../../lib/utils';
 
@@ -36,6 +37,10 @@ export async function GET(request) {
       case 'bg':
       case 'bankgiro':
           result = validateBankgiro(value);
+          break;
+      case 'pg':
+      case 'plusgiro':
+          result = validatePlusgiro(value);
           break;
       case 'account':
       case 'bank_account':

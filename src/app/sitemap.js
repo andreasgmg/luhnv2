@@ -7,6 +7,7 @@ export default function sitemap() {
     '/organisation',
     '/bankgiro',
     '/bank-account',
+    '/ocr',
     '/validator',
     '/validator/personnummer',
     '/validator/organisation',

@@ -1,3 +1,5 @@
+import { validateSwedishBank, BANK_DATA } from './bank-rules';
+
 /**
  * Calculates the Luhn checksum for a string of digits.
  * @param {string} str - The numeric string to check.
@@ -23,112 +25,124 @@ export function luhnCheck(str) {
  */
 export function validatePersonnummer(ssn) {
     const clean = ssn.replace(/\D/g, '');
-    if (clean.length !== 10 && clean.length !== 12) return { valid: false, error: 'Invalid length' };
+    if (clean.length !== 10 && clean.length !== 12) return { valid: false, error: 'Felaktig längd' };
     const tenDigit = clean.length === 12 ? clean.slice(2) : clean;
-    if (!luhnCheck(tenDigit)) return { valid: false, error: 'Invalid Checksum' };
+    if (!luhnCheck(tenDigit)) return { valid: false, error: 'Felaktig kontrollsiffra (Luhn)' };
     
-    // Simple Date Check
     const month = parseInt(tenDigit.slice(2, 4));
     const day = parseInt(tenDigit.slice(4, 6));
-    if (month < 1 || month > 12) return { valid: false };
-    if (day > 60) { // Samordningsnummer
-         if (day < 61 || day > 91) return { valid: false };
+    if (month < 1 || month > 12) return { valid: false, error: 'Ogiltig månad' };
+    if (day > 60) {
+         if (day < 61 || day > 91) return { valid: false, error: 'Ogiltig dag (Samordningsnummer)' };
     } else {
-         if (day < 1 || day > 31) return { valid: false };
+         if (day < 1 || day > 31) return { valid: false, error: 'Ogiltig dag' };
     }
     return { valid: true };
 }
 
-/**
- * Validates a Swedish Organization Number.
- * Format: XXXXXX-XXXX. Middle pair >= 20. Luhn check.
- */
 export function validateOrgNumber(org) {
     const clean = org.replace(/\D/g, '');
-    if (clean.length !== 10 && clean.length !== 12) return { valid: false };
+    if (clean.length !== 10 && clean.length !== 12) return { valid: false, error: 'Felaktig längd' };
     const tenDigit = clean.length === 12 ? clean.slice(2) : clean;
     
-    if (!luhnCheck(tenDigit)) return { valid: false, error: 'Invalid Checksum' };
+    if (!luhnCheck(tenDigit)) return { valid: false, error: 'Felaktig kontrollsiffra' };
     
     const middlePair = parseInt(tenDigit.slice(2, 4));
-    if (middlePair < 20) return { valid: false, error: 'Middle pair < 20' };
+    if (middlePair < 20) return { valid: false, error: 'Mellanpar < 20 (Ogiltig Org.nr)' };
     
     return { valid: true };
 }
 
-/**
- * Validates a Swedish VAT Number (Momsnummer).
- * Format: SE + OrgNum + 01.
- */
 export function validateVAT(vat) {
     const clean = vat.replace(/[^a-zA-Z0-9]/g, '');
-    if (!clean.startsWith('SE') || !clean.endsWith('01')) return { valid: false };
-    if (clean.length !== 14) return { valid: false };
+    if (!clean.startsWith('SE') || !clean.endsWith('01')) return { valid: false, error: 'Måste börja med SE och sluta med 01' };
+    if (clean.length !== 14) return { valid: false, error: 'Felaktig längd (ska vara 14 tecken)' };
     
     const orgPart = clean.slice(2, 12);
     return validateOrgNumber(orgPart);
 }
 
-/**
- * Validates a Bankgiro number.
- * 7 or 8 digits. Luhn Check.
- */
 export function validateBankgiro(bg) {
     const clean = bg.replace(/\D/g, '');
-    if (clean.length < 7 || clean.length > 8) return { valid: false };
-    return { valid: luhnCheck(clean) };
+    if (clean.length < 7 || clean.length > 8) return { valid: false, error: 'Felaktig längd' };
+    return { valid: luhnCheck(clean), error: luhnCheck(clean) ? null : 'Felaktig kontrollsiffra' };
 }
 
-/**
- * Bank Clearing Number Ranges (Simplified)
- */
-export const BANK_RANGES = [
-    { name: 'Swedbank', min: 8000, max: 8999 },
-    { name: 'Swedbank', min: 7000, max: 7999 }, // Partial, mostly Swedbank
-    { name: 'Handelsbanken', min: 6000, max: 6999 },
-    { name: 'SEB', min: 5000, max: 5999 },
-    { name: 'SEB', min: 9120, max: 9124 },
-    { name: 'Nordea', min: 1100, max: 1199 },
-    { name: 'Nordea', min: 1400, max: 2099 },
-    { name: 'Nordea', min: 3000, max: 3399 },
-    { name: 'Nordea', min: 4000, max: 4999 }, // Nordea Personkonto
-    { name: 'Danske Bank', min: 1200, max: 1399 },
-    { name: 'Danske Bank', min: 2400, max: 2499 },
-    { name: 'Länsförsäkringar', min: 3400, max: 3409 },
-    { name: 'Länsförsäkringar', min: 9020, max: 9029 },
-    { name: 'Länsförsäkringar', min: 9060, max: 9069 },
-    { name: 'Skandia', min: 9150, max: 9169 },
-    { name: 'SBAB', min: 9250, max: 9259 },
-    { name: 'ICA Banken', min: 9270, max: 9279 }
-];
+export function validatePlusgiro(pg) {
+    const clean = pg.replace(/\D/g, '');
+    // Plusgiro is 2-8 digits
+    if (clean.length < 2 || clean.length > 8) return { valid: false, error: 'Felaktig längd (2-8 siffror)' };
+    return { valid: luhnCheck(clean), error: luhnCheck(clean) ? null : 'Felaktig kontrollsiffra' };
+}
 
-/**
- * Identifies the bank from a clearing number.
- */
+// Re-export BANK_RANGES for data-provider.js compatibility
+export const BANK_RANGES = BANK_DATA;
+
 export function getBankFromClearing(clearing) {
     const c = parseInt(clearing.replace(/\D/g, '').slice(0, 4));
-    const bank = BANK_RANGES.find(r => c >= r.min && c <= r.max);
-    return bank ? bank.name : 'Unknown Bank';
+    const bank = BANK_DATA.find(r => c >= r.min && c <= r.max);
+    return bank ? bank.name : 'Okänd Bank';
 }
 
 /**
- * Validates a Bank Account (Basic).
- * Checks clearing number range and total length (usually 11-15 digits including clearing).
- * Note: Full modulo validation varies wildly by bank and is complex.
+ * Validates a Bank Account using the robust bank-rules engine.
  */
 export function validateBankAccount(clearing, account) {
-    const cleanClearing = clearing.replace(/\D/g, '');
-    const cleanAccount = account.replace(/\D/g, '');
-    
-    if (cleanClearing.length < 4 || cleanClearing.length > 5) return { valid: false, error: 'Invalid Clearing' };
-    
-    const bankName = getBankFromClearing(cleanClearing);
-    if (bankName === 'Unknown Bank') return { valid: false, error: 'Unknown Clearing Range' };
+    if (!clearing || !account) return { valid: false, error: 'Saknar clearing eller kontonummer' };
+    return validateSwedishBank(clearing, account);
+}
 
-    // Swedbank has 5 digit clearing sometimes, accounts vary.
-    // Total length check (Clearing + Account)
-    const totalLen = cleanClearing.length + cleanAccount.length;
-    if (totalLen < 10 || totalLen > 15) return { valid: false, error: 'Invalid Total Length' };
+/**
+ * Generates an OCR reference number.
+ * @param {number} length - Total length including check digits.
+ * @param {boolean} lengthCheck - If true, embeds length indicator.
+ */
+export function generateOCR(length = 10, lengthCheck = false) {
+    // Reserve space for Check digit (1) and optional Length digit (1)
+    const payloadLen = length - 1 - (lengthCheck ? 1 : 0);
+    let payload = '';
+    
+    // Generate random payload
+    for (let i = 0; i < payloadLen; i++) {
+        payload += Math.floor(Math.random() * 10);
+    }
 
-    return { valid: true, bankName };
+    if (lengthCheck) {
+        // Add length indicator (Length % 10)
+        payload += (length % 10).toString();
+    }
+
+    // Add Luhn check digit
+    const checkDigit = getLuhnDigit(payload);
+    return payload + checkDigit;
+}
+
+/**
+ * Helper for generating luhn digit (reused from data-provider concept)
+ */
+function getLuhnDigit(payload) {
+    for (let i = 0; i <= 9; i++) {
+        if (luhnCheck(payload + i)) {
+            return i.toString();
+        }
+    }
+    return '0';
+}
+
+/**
+ * Validates an OCR number.
+ */
+export function validateOCR(ocr) {
+    const clean = ocr.replace(/\D/g, '');
+    if (clean.length < 2) return { valid: false, error: 'För kort' };
+    
+    // Basic Luhn validation
+    if (!luhnCheck(clean)) return { valid: false, error: 'Felaktig kontrollsiffra (Luhn)' };
+
+    // Advanced: Check for Length Indicator (Hard check)
+    // This is tricky because we don't know IF the number uses length check just by looking at it.
+    // Usually systems know "This BG requires length check".
+    // We will validate strictly on Luhn for now.
+    
+    return { valid: true };
 }
