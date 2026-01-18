@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOfficialIdentity } from '../../../lib/data-provider';
+import { getOfficialIdentity, Identity } from '../../../lib/data-provider';
 
 // Helper för XML-escaping
 function escapeXML(val: any): string {
@@ -8,6 +8,7 @@ function escapeXML(val: any): string {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
 }
 
@@ -42,6 +43,14 @@ function escapeCSV(val: any): string {
     return `"${str.replace(/"/g, '""')}"`;
 }
 
+// Configuration Constants
+const MAX_COUNT = 100000;
+const YIELD_THRESHOLD = 200; // Yield control to event loop every X items
+
+/**
+ * API v3 - Streaming Support
+ * Handles large-scale data generation (up to 100k rows) via Web Streams.
+ */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') || 'personnummer';
@@ -49,7 +58,7 @@ export async function GET(request: NextRequest) {
   
   let count = parseInt(searchParams.get('count') || '1');
   if (count < 1) count = 1;
-  if (count > 100000) count = 100000;
+  if (count > MAX_COUNT) count = MAX_COUNT;
 
   const options = {
     gender: searchParams.get('gender'),
@@ -60,10 +69,12 @@ export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      // JSON Start
       if (format === 'json' && count > 1) {
         controller.enqueue(encoder.encode('['));
       }
       
+      // CSV Header
       if (format === 'csv') {
         let header = '';
         if (type === 'company') header = 'orgNumber,name,vatNumber\n';
@@ -74,6 +85,7 @@ export async function GET(request: NextRequest) {
         controller.enqueue(encoder.encode(header));
       }
 
+      // XML Start
       if (format === 'xml') {
         controller.enqueue(encoder.encode('<?xml version="1.0" encoding="UTF-8"?>\n<root>\n'));
       }
@@ -104,11 +116,13 @@ export async function GET(request: NextRequest) {
 
         controller.enqueue(encoder.encode(chunk));
 
-        if (i % 200 === 0) {
+        // Periodically yield to event loop to keep the server responsive
+        if (i % YIELD_THRESHOLD === 0) {
           await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
 
+      // Finalize
       if (format === 'json' && count > 1) controller.enqueue(encoder.encode(']'));
       if (format === 'xml') controller.enqueue(encoder.encode('</root>'));
       

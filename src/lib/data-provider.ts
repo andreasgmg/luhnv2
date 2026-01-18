@@ -2,17 +2,21 @@ import fs from 'fs/promises';
 import path from 'path';
 import { luhnCheck, BANK_RANGES, generateOCR, getRandomElement, ValidationResult } from './utils';
 
+// --- Interfaces ---
+
+export interface Address {
+  street: string;
+  zip: string;
+  city: string;
+}
+
 export interface Person {
   ssn: string;
   firstName: string;
   lastName: string;
-  gender: string;
+  gender: 'male' | 'female' | 'unknown';
   type: 'person';
-  address: {
-    street: string;
-    zip: string;
-    city: string;
-  };
+  address: Address;
 }
 
 export interface Company {
@@ -43,7 +47,7 @@ export interface OCR {
 
 export type Identity = Person | Company | BankAccount | Bankgiro | OCR;
 
-interface NamesData {
+export interface NamesData {
   firstNames: {
     male: string[];
     female: string[];
@@ -57,19 +61,41 @@ interface NamesData {
   banks: string[];
 }
 
-interface Location {
+export interface LocationEntry {
   street: string;
   zip: string;
   city: string;
 }
 
-// Cache the data in memory
-let cachedData: {
+// --- Type Guards ---
+
+function isNamesData(data: unknown): data is NamesData {
+  if (typeof data !== 'object' || data === null) return false;
+  const d = data as any;
+  return (
+    typeof d.firstNames === 'object' &&
+    Array.isArray(d.firstNames.male) &&
+    Array.isArray(d.lastNames) &&
+    typeof d.company === 'object'
+  );
+}
+
+function isLocationArray(data: unknown): data is LocationEntry[] {
+  return Array.isArray(data) && data.every(item => 
+    typeof item === 'object' && item !== null && 'street' in item && 'zip' in item
+  );
+}
+
+// --- Cache ---
+
+interface Cache {
   personnummer: string[] | null;
   samordningsnummer: string[] | null;
-  locations: Location[] | null;
+  locations: LocationEntry[] | null;
   names: NamesData | null;
-} = {
+}
+
+const cachedData: Cache = {
   personnummer: null,
   samordningsnummer: null,
   locations: null,
@@ -77,41 +103,47 @@ let cachedData: {
 };
 
 /**
- * Loads and parses JSON data from the local file system asynchronously.
+ * Generic JSON loader with runtime validation
  */
-async function loadData(type: string): Promise<any> {
-  if (cachedData[type]) return cachedData[type];
+async function loadData<T>(type: keyof Cache, validator: (data: unknown) => data is T): Promise<T> {
+  const cached = cachedData[type];
+  if (cached) return cached as unknown as T;
 
   try {
-    const fileName = type + '.json';
+    const fileName = `${type}.json`;
     const filePath = path.join(process.cwd(), 'data', fileName);
     const fileContent = await fs.readFile(filePath, 'utf8');
-    const json = JSON.parse(fileContent);
+    const json: unknown = JSON.parse(fileContent);
 
-    if (type === 'locations' || type === 'names') {
-        cachedData[type] = json; 
-        return cachedData[type];
+    let processed: unknown = json;
+
+    // Special logic for SSN lists which are nested by year in the raw JSON
+    if (type === 'personnummer' || type === 'samordningsnummer') {
+      if (typeof json === 'object' && json !== null && !Array.isArray(json)) {
+        processed = Object.values(json).reduce<string[]>((acc, val) => {
+          if (Array.isArray(val)) {
+            return acc.concat(val.map(item => String(Object.values(item)[0])));
+          }
+          return acc;
+        }, []);
+      }
     }
 
-    let rawList: any[];
-    if (Array.isArray(json)) {
-      rawList = json;
-    } else {
-      rawList = Object.values(json).reduce((acc: any[], val: any) => {
-        if (Array.isArray(val)) {
-          return acc.concat(val);
-        }
-        return acc;
-      }, []);
+    if (!validator(processed)) {
+      throw new Error(`Data validation failed for type: ${type}`);
     }
 
-    cachedData[type] = rawList.map(item => Object.values(item)[0] as string);
-    return cachedData[type];
+    (cachedData as any)[type] = processed;
+    return processed as T;
   } catch (error) {
-    console.error(`❌ Failed to load ${type}:`, error.message);
-    return [];
+    console.error(`❌ Failed to load ${type}:`, (error as Error).message);
+    // Return empty state matching the expected type to avoid crashing
+    if (type === 'names') throw error; // Critical failure
+    return [] as unknown as T;
   }
 }
+
+// --- Helpers ---
 
 function getLuhnDigit(payload: string): string {
     for (let i = 0; i <= 9; i++) {
@@ -120,52 +152,6 @@ function getLuhnDigit(payload: string): string {
         }
     }
     return '0';
-}
-
-export function generateOrgNumber(): string {
-    const firstPair = Math.floor(Math.random() * 90) + 10;
-    const middlePair = Math.floor(Math.random() * 80) + 20;
-    const thirdPair = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-    const prefix = `${firstPair}${middlePair}${thirdPair}`;
-    const suffixStart = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    const payload = prefix + suffixStart;
-    const checkDigit = getLuhnDigit(payload);
-    return `${prefix}-${suffixStart}${checkDigit}`;
-}
-
-export function generateBankgiro(): string {
-    let payload = '998';
-    for(let i=0; i<3; i++) {
-        payload += Math.floor(Math.random() * 10);
-    }
-    const checkDigit = getLuhnDigit(payload);
-    const full = payload + checkDigit;
-    return `${full.slice(0, 3)}-${full.slice(3)}`;
-}
-
-export function generatePlusgiro(): string {
-    const len = Math.floor(Math.random() * 7) + 1; 
-    let payload = '';
-    payload += Math.floor(Math.random() * 9) + 1;
-    for(let i=1; i<len; i++) payload += Math.floor(Math.random() * 10);
-    const checkDigit = getLuhnDigit(payload);
-    const full = payload + checkDigit;
-    return `${full.slice(0, -1)}-${full.slice(-1)}`;
-}
-
-export async function generateBankAccount(): Promise<Omit<BankAccount, 'type'>> {
-    const namesData = (await loadData('names')) as NamesData;
-    const bankConfig = getRandomElement(BANK_RANGES);
-    const clearing = Math.floor(Math.random() * (bankConfig.max - bankConfig.min + 1)) + bankConfig.min;
-    const accLen = Math.floor(Math.random() * 4) + 7; 
-    let account = '';
-    for(let i=0; i<accLen; i++) account += Math.floor(Math.random() * 10);
-
-    return {
-        bank: bankConfig.name,
-        clearing: clearing.toString(),
-        account: account
-    };
 }
 
 function getGender(ssn: string): 'male' | 'female' | 'unknown' {
@@ -190,7 +176,6 @@ function getYearFromSSN(ssn: string): number {
         yearPart = yy > currentYear ? 1900 + yy : 2000 + yy;
     }
 
-    // Normalisera månad om det är en övernummerserie
     if (monthPart > 60) monthPart -= 60;
     else if (monthPart > 40) monthPart -= 40;
     else if (monthPart > 20) monthPart -= 20;
@@ -198,22 +183,56 @@ function getYearFromSSN(ssn: string): number {
     return yearPart;
 }
 
+// --- Exported Functions ---
+
+export function generateOrgNumber(): string {
+    const firstPair = Math.floor(Math.random() * 90) + 10;
+    const middlePair = Math.floor(Math.random() * 80) + 20;
+    const thirdPair = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    const prefix = `${firstPair}${middlePair}${thirdPair}`;
+    const suffixStart = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const payload = prefix + suffixStart;
+    const checkDigit = getLuhnDigit(payload);
+    return `${prefix}-${suffixStart}${checkDigit}`;
+}
+
+export async function generateBankAccount(): Promise<Omit<BankAccount, 'type'>> {
+    const bankConfig = getRandomElement(BANK_RANGES);
+    if (!bankConfig) throw new Error('Bank config missing');
+    
+    const clearing = Math.floor(Math.random() * (bankConfig.max - bankConfig.min + 1)) + bankConfig.min;
+    const accLen = Math.floor(Math.random() * 4) + 7; 
+    let account = '';
+    for(let i=0; i<accLen; i++) account += Math.floor(Math.random() * 10);
+
+    return {
+        bank: bankConfig.name,
+        clearing: clearing.toString(),
+        account: account
+    };
+}
+
 export async function validateAddress(zip: string, city: string | null = null): Promise<ValidationResult> {
-    const locations = (await loadData('locations')) as Location[];
-    if (!locations.length) return { valid: false, error: 'Databasen är inte laddad' };
+    const locations = await loadData<LocationEntry[]>('locations', isLocationArray);
     const cleanZip = zip.replace(/\s/g, ''); 
     const matches = locations.filter(loc => loc.zip.replace(/\s/g, '') === cleanZip);
+    
     if (matches.length === 0) return { valid: false, error: 'Postnumret hittades inte' };
+    
     if (city) {
         const cityMatch = matches.some(loc => loc.city.toLowerCase() === city.toLowerCase());
         if (!cityMatch) return { valid: false, error: `Postnumret ${zip} tillhör inte ${city}`, suggestedCity: matches[0].city };
     }
+    
     return { valid: true, city: matches[0].city, zip: matches[0].zip };
 }
 
-export async function getOfficialIdentity(type: string = 'personnummer', options: any = {}): Promise<Identity | null> {
-  const { gender, minYear, maxYear } = options;
-  const namesData = (await loadData('names')) as NamesData;
+export async function getOfficialIdentity(
+  type: string = 'personnummer', 
+  options: { gender?: string, minYear?: string, maxYear?: string, length?: number, lengthCheck?: boolean } = {}
+): Promise<Identity | null> {
+  
+  const namesData = await loadData<NamesData>('names', isNamesData);
 
   if (type === 'company') {
       const orgNumber = generateOrgNumber();
@@ -224,49 +243,70 @@ export async function getOfficialIdentity(type: string = 'personnummer', options
       } else if (template === 1) {
           name = `${getRandomElement(namesData.company.locations)} ${getRandomElement(namesData.company.sectors)} ${getRandomElement(namesData.company.suffixes)}`;
       } else {
-          name = `${getRandomElement(namesData.company.sectors)} & ${getRandomElement(namesData.company.sectors)} i ${getRandomElement(namesData.company.locations).replace(/s$/, '')} AB`;
+          name = `${getRandomElement(namesData.company.sectors)} & ${getRandomElement(namesData.company.sectors)} i ${getRandomElement(namesData.company.locations)?.replace(/s$/, '')} AB`;
       }
       return { orgNumber, name, vatNumber: `SE${orgNumber.replace('-', '')}01`, type: 'company' };
   }
 
-  if (type === 'bankgiro') return { bankgiro: generateBankgiro(), bank: 'Bankgirot', type: 'bankgiro' };
-  if (type === 'plusgiro') return { plusgiro: generatePlusgiro(), bank: 'Plusgirot', type: 'plusgiro' };
+  if (type === 'bankgiro') {
+      const bg = '998' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const full = bg + getLuhnDigit(bg);
+      return { bankgiro: `${full.slice(0, 3)}-${full.slice(3)}`, bank: 'Bankgirot', type: 'bankgiro' };
+  }
+
+  if (type === 'plusgiro') {
+      const pg = Math.floor(Math.random() * 1000000).toString();
+      const full = pg + getLuhnDigit(pg);
+      return { plusgiro: `${full.slice(0, -1)}-${full.slice(-1)}` as any, bank: 'Plusgirot', type: 'plusgiro' as any };
+  }
+
   if (type === 'bank_account') return { ...(await generateBankAccount()), type: 'bank_account' };
+  
   if (type === 'ocr') {
       const ocr = generateOCR(options.length || 10, options.lengthCheck || false);
       return { ocr, length: options.length || 10, type: 'ocr' };
   }
 
-  const list = (await loadData(type)) as string[];
-  const locations = (await loadData('locations')) as Location[];
+  // Identity logic
+  const isStringArray = (d: unknown): d is string[] => Array.isArray(d) && d.every(i => typeof i === 'string');
+  const ssnType = type === 'samordningsnummer' ? 'samordningsnummer' : 'personnummer';
+  const list = await loadData<string[]>(ssnType, isStringArray);
+  const locations = await loadData<LocationEntry[]>('locations', isLocationArray);
   
-  if (!list.length) return null;
   let candidates = list;
-  if (gender) candidates = candidates.filter(ssn => getGender(ssn) === gender);
-  if (minYear || maxYear) {
+  if (options.gender) candidates = candidates.filter(ssn => getGender(ssn) === options.gender);
+  if (options.minYear || options.maxYear) {
       candidates = candidates.filter(ssn => {
           const y = getYearFromSSN(ssn);
-          if (minYear && y < parseInt(minYear)) return false;
-          if (maxYear && y > parseInt(maxYear)) return false;
+          if (options.minYear && y < parseInt(options.minYear)) return false;
+          if (options.maxYear && y > parseInt(options.maxYear)) return false;
           return true;
       });
   }
 
   if (!candidates.length) return null;
 
-  let ssn = getRandomElement(candidates) as string;
+  const ssn = getRandomElement(candidates)!;
   const actualGender = getGender(ssn);
-  const firstName = getRandomElement(namesData.firstNames[actualGender === 'unknown' ? 'male' : actualGender]) as string;
-  const lastName = getRandomElement(namesData.lastNames) as string;
+  const firstNameList = actualGender === 'female' ? namesData.firstNames.female : namesData.firstNames.male;
+  
+  const firstName = getRandomElement(firstNameList)!;
+  const lastName = getRandomElement(namesData.lastNames)!;
   const location = getRandomElement(locations) || { street: 'Storgatan', zip: '111 22', city: 'Stockholm' };
 
-  if (ssn.length === 12) ssn = ssn.slice(2);
+  let displaySsn = ssn;
+  if (displaySsn.length === 12) displaySsn = displaySsn.slice(2);
 
   return {
-    ssn, firstName, lastName, gender: actualGender, type: 'person',
+    ssn: displaySsn, 
+    firstName, 
+    lastName, 
+    gender: actualGender, 
+    type: 'person',
     address: {
       street: `${location.street} ${Math.floor(Math.random() * 100) + 1}`,
-      zip: location.zip, city: location.city
+      zip: location.zip, 
+      city: location.city
     }
   };
 }

@@ -5,6 +5,8 @@ import { validateSwedishBank, BANK_DATA } from './bank-rules';
  */
 export function luhnCheck(str: string): boolean {
     const cleanStr = str.replace(/\D/g, '');
+    if (!cleanStr) return false;
+    
     let sum = 0;
     let shouldDouble = false;
     for (let i = cleanStr.length - 1; i >= 0; i--) {
@@ -29,34 +31,29 @@ export interface ValidationResult {
 
 /**
  * Validerar Personnummer och Samordningsnummer enligt SKV 704.
- * Hanterar Övernummerserier (+20, +40, +60 på månad) och okända födelsedatum (dag 60).
  */
 export function validatePersonnummer(ssn: string): ValidationResult {
     const clean = ssn.replace(/\D/g, '');
     if (clean.length !== 10 && clean.length !== 12) return { valid: false, error: 'Felaktig längd' };
     
+    // Luhn körs alltid på 10 siffror
     const tenDigit = clean.length === 12 ? clean.slice(2) : clean;
     if (!luhnCheck(tenDigit)) return { valid: false, error: 'Felaktig kontrollsiffra (Luhn)' };
     
     let month = parseInt(tenDigit.slice(2, 4));
     let day = parseInt(tenDigit.slice(4, 6));
 
-    // 1. Hantera Övernummerserier (SKV 704)
-    // Månaden kan vara MM+20, MM+40 eller MM+60 om ordinarie nummer är slut.
+    // Hantera Övernummerserier
     if (month > 60 && month <= 72) month -= 60;
     else if (month > 40 && month <= 52) month -= 40;
     else if (month > 20 && month <= 32) month -= 20;
 
-    if (month < 1 || month > 12) return { valid: false, error: 'Ogiltig månad (även efter justering för övernummerserie)' };
+    if (month < 1 || month > 12) return { valid: false, error: 'Ogiltig månad' };
 
-    // 2. Hantera Samordningsnummer (+60 på dag)
     if (day >= 60) {
-        // Dag 60 betyder "Okänt födelsedatum" (Nytt i SKV 704)
-        // Dag 61-91 är vanliga samordningsnummer
-        if (day < 60 || day > 91) return { valid: false, error: 'Ogiltig dag för samordningsnummer (60-91)' };
+        if (day < 60 || day > 91) return { valid: false, error: 'Ogiltig dag för samordningsnummer' };
     } else {
-        // Vanligt personnummer (1-31)
-        if (day < 1 || day > 31) return { valid: false, error: 'Ogiltig dag (1-31)' };
+        if (day < 1 || day > 31) return { valid: false, error: 'Ogiltig dag' };
     }
 
     return { valid: true };
@@ -70,7 +67,6 @@ export function validateOrgNumber(org: string): ValidationResult {
     if (!luhnCheck(tenDigit)) return { valid: false, error: 'Felaktig kontrollsiffra' };
     
     const middlePair = parseInt(tenDigit.slice(2, 4));
-    // Enligt SKV 704 ska tredje siffran i org.nr vara lägst 2.
     if (middlePair < 20) return { valid: false, error: 'Ogiltigt organisationsnummer (mellanpar < 20)' };
     
     return { valid: true };
@@ -79,7 +75,7 @@ export function validateOrgNumber(org: string): ValidationResult {
 export function validateVAT(vat: string): ValidationResult {
     const clean = vat.replace(/[^a-zA-Z0-9]/g, '');
     if (!clean.startsWith('SE') || !clean.endsWith('01')) return { valid: false, error: 'Måste börja med SE och sluta med 01' };
-    if (clean.length !== 14) return { valid: false, error: 'Felaktig längd (14 tecken)' };
+    if (clean.length !== 14) return { valid: false, error: 'Felaktig längd' };
     const orgPart = clean.slice(2, 12);
     return validateOrgNumber(orgPart);
 }
@@ -109,7 +105,6 @@ export function generateOCR(length = 10, lengthCheck = false): string {
     for (let i = 0; i < payloadLen; i++) payload += Math.floor(Math.random() * 10);
     if (lengthCheck) payload += (length % 10).toString();
     
-    // getLuhnDigit helper
     const getDigit = (p: string) => {
         for (let i = 0; i <= 9; i++) if (luhnCheck(p + i)) return i.toString();
         return '0';
