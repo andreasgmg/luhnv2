@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { 
-  Copy, Check, Menu, X, Terminal, Briefcase, User, Building2, 
+  Menu, X, Terminal, Briefcase, User, Building2, 
   CreditCard, ShieldCheck, Wallet, Code2, Server, Home, 
-  ArrowRight, Heart, ScanLine, Download, LucideIcon 
+  ArrowRight, Heart, ScanLine, Download, Check
 } from 'lucide-react';
+
 import { 
     validatePersonnummer, 
     validateOrgNumber, 
@@ -20,23 +21,17 @@ import {
 } from '../lib/utils';
 import { Identity, Person, Company, BankAccount, Bankgiro, Plusgiro, OCR } from '../lib/data-provider';
 
-// --- Types ---
-
-interface NavItemData {
-  href: string;
-  id: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-interface NavGroup {
-  group: string;
-  items: NavItemData[];
-}
+// UI Components
+import DotGridBackground from './ui/DotGridBackground';
+import TerminalWindow from './ui/TerminalWindow';
+import NavItem from './ui/NavItem';
+import CodeBlock from './ui/CodeBlock';
+import EndpointExample from './ui/EndpointExample';
+import FeatureCard from './ui/FeatureCard';
 
 // --- Constants ---
 
-const NAV_ITEMS: NavGroup[] = [
+const NAV_ITEMS = [
   { group: 'Start', items: [{ href: '/', id: 'home', label: 'Översikt', icon: Home }] },
   { group: 'Identiteter', items: [
     { href: '/personnummer', id: 'personnummer', label: 'Personnummer', icon: User },
@@ -62,181 +57,6 @@ const VALIDATOR_TABS = [
   { id: 'pg', label: 'Plusgiro', href: '/validator/plusgiro' },
   { id: 'account', label: 'Bankkonto', href: '/validator/bankkonto' }
 ];
-
-// --- Global Utilities ---
-
-const copyToClipboard = (text: string) => {
-  if (!text) return;
-  navigator.clipboard.writeText(text);
-  toast.success('Kopierad till urklipp');
-};
-
-// --- Shared Components ---
-
-const DotGridBackground: React.FC = () => (
-  <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
-);
-
-const CopyButton: React.FC<{ text: string }> = ({ text }) => {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    copyToClipboard(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <button onClick={handleCopy} className="text-slate-400 hover:text-white transition-colors">
-      {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-    </button>
-  );
-};
-
-const TerminalWindow: React.FC = () => (
-  <div className="relative z-10 rounded-xl overflow-hidden bg-[#0d1117] border border-gray-800 shadow-2xl ring-1 ring-white/10 text-left">
-    <div className="flex items-center px-4 py-3 bg-[#161b22] border-b border-gray-800">
-      <div className="flex space-x-2">
-        <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
-        <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-        <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
-      </div>
-      <div className="ml-4 flex-1 text-center pr-12">
-        <span className="text-xs font-mono text-gray-500">api-client — bash</span>
-      </div>
-    </div>
-    <div className="p-6 font-mono text-sm leading-relaxed text-gray-300">
-      <div className="flex items-start mb-4 group">
-        <span className="text-gray-500 mr-3 select-none">$</span>
-        <div className="flex-1">
-          <span className="text-purple-400">curl</span>
-          <span className="text-gray-300 ml-2">{`"https://luhn.se/api/generate?type=personnummer"`}</span>
-        </div>
-        <CopyButton text='curl "https://luhn.se/api/generate?type=personnummer"' />
-      </div>
-      <div>
-        <span className="block text-gray-500 select-none mb-1"># Output</span>
-        <span className="block text-[#e6edf3]">{`{`}</span>
-        <span className="block text-[#e6edf3] ml-4">
-          <span className="text-[#7ee787]">{`"ssn"`}</span>: <span className="text-[#a5d6ff]">{`"19900505-1234"`}</span>,
-        </span>
-        <span className="block text-[#e6edf3] ml-4">
-          <span className="text-[#7ee787]">{`"firstName"`}</span>: <span className="text-[#a5d6ff]">{`"Johan"`}</span>,
-        </span>
-        <span className="block text-[#e6edf3] ml-4">
-          <span className="text-[#7ee787]">{`"valid"`}</span>: <span className="text-[#79c0ff]">true</span>
-        </span>
-        <span className="block text-[#e6edf3]">{`}`}</span>
-      </div>
-    </div>
-  </div>
-);
-
-const NavItem: React.FC<{ 
-  href: string, 
-  id: string, 
-  label: string, 
-  icon: LucideIcon, 
-  isActive: boolean, 
-  onMobileClick: () => void 
-}> = ({ href, label, icon: Icon, isActive, onMobileClick }) => (
-  <Link
-    href={href}
-    onClick={onMobileClick}
-    className={`relative w-full flex items-center space-x-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-      isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-    }`}
-  >
-    <Icon size={18} />
-    <span>{label}</span>
-  </Link>
-);
-
-const CodeBlock: React.FC<{ label: string, value: string | number | undefined }> = ({ label, value }) => (
-  <div className="group relative text-left">
-    <div className="flex items-center justify-between mb-2">
-      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
-    </div>
-    <div 
-      onClick={() => copyToClipboard(String(value))}
-      className="relative bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-500 hover:shadow-sm transition-all"
-    >
-      <code className="font-mono text-sm text-gray-900 break-all">{value || '...'}</code>
-      <div className="absolute top-3.5 right-3 p-1.5 bg-gray-50 rounded-md text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Copy size={14} />
-      </div>
-    </div>
-  </div>
-);
-
-const EndpointExample: React.FC<{ method: string, url: string, desc: string }> = ({ method, url, desc }) => {
-  const [response, setResponse] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState<{code: number | string, time: number} | null>(null);
-
-  const runRequest = async () => {
-    setIsLoading(true);
-    try {
-      const start = Date.now();
-      const res = await fetch(url);
-      const data = await res.json();
-      const duration = Date.now() - start;
-      setStatus({ code: res.status, time: duration });
-      setResponse(data);
-    } catch (err) {
-      setStatus({ code: 'ERR', time: 0 });
-      setResponse({ error: 'Kunde inte nå servern' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="mb-8 border border-gray-200 rounded-xl overflow-hidden bg-white text-left">
-      <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <span className={`text-xs font-bold px-2 py-1 rounded ${method === 'GET' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{method}</span>
-            <code className="text-sm font-mono text-gray-700 break-all">{url}</code>
-          </div>
-          <button onClick={runRequest} disabled={isLoading} className="flex items-center space-x-1 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 disabled:opacity-50">
-            {isLoading ? <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> : <div className="w-0 h-0 border-l-[6px] border-l-gray-600 border-y-[4px] border-y-transparent ml-0.5" />}
-            <span>Kör</span>
-          </button>
-        </div>
-        <p className="text-sm text-gray-600">{desc}</p>
-      </div>
-      <div className="bg-slate-900 p-4 font-mono text-xs text-blue-300 overflow-x-auto relative group">
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-           <button onClick={() => copyToClipboard(`curl "https://luhn.se${url}"`)} className="p-1.5 bg-slate-800 text-slate-400 rounded hover:text-white"><Copy size={12} /></button>
-        </div>
-        <div>{`curl "https://luhn.se${url}"`}</div>
-      </div>
-      {response && (
-        <div className="border-t border-gray-200 bg-slate-50 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Response</span>
-            {status && <div className="flex space-x-3 text-xs font-mono"><span className={status.code === 200 ? 'text-green-600' : 'text-red-600'}>{String(status.code)} OK</span><span className="text-gray-400">{status.time}ms</span></div>}
-          </div>
-          <pre className="font-mono text-xs text-gray-800 overflow-x-auto bg-white p-3 rounded-lg border border-gray-200">{JSON.stringify(response, null, 2)}</pre>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const FeatureCard: React.FC<{ href: string, title: string, desc: string, icon: LucideIcon }> = ({ href, title, desc, icon: Icon }) => (
-  <Link href={href} className="group h-full p-6 bg-white border border-gray-200 rounded-2xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/5 transition-all flex flex-col text-left">
-    <div className="flex items-center justify-between mb-4">
-      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-        <Icon className="text-blue-600" size={20} />
-      </div>
-      <ArrowRight size={18} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
-    </div>
-    <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
-    <p className="text-sm text-gray-500 leading-relaxed flex-1">{desc}</p>
-  </Link>
-);
-
-// --- Main Component ---
 
 export default function Generator() {
   const pathname = usePathname();
@@ -349,7 +169,7 @@ export default function Generator() {
   };
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
+    <div className="flex h-screen bg-white overflow-hidden text-left">
       <Toaster position="top-right" />
       
       {/* Mobile Header */}
@@ -389,7 +209,7 @@ export default function Generator() {
         {activeTab === 'home' && <DotGridBackground />}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           {activeTab !== 'home' && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4 text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4">
                 <div><h1 className="text-3xl font-bold text-gray-900 mb-2 capitalize">{getTitle()}</h1><p className="text-gray-500">{getDescription()}</p></div>
                 {activeTab !== 'validator' && activeTab !== 'api' && (<button onClick={() => fetchData(activeTab)} disabled={loading} className="inline-flex items-center justify-center px-6 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-all disabled:opacity-50 active:scale-95 whitespace-nowrap">{loading ? 'Genererar...' : 'Generera ny'}</button>)}
             </div>
@@ -431,7 +251,7 @@ export default function Generator() {
                 </div>
               </div>
             ) : activeTab === 'validator' ? (
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-left">
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                     <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between"><span className="text-sm font-medium text-gray-700">Validering</span><span className="text-xs font-mono text-gray-400">INPUT</span></div>
                     <div className="p-6">
                         <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl mb-8 overflow-x-auto">
@@ -441,12 +261,12 @@ export default function Generator() {
                         </div>
                         <div className="space-y-6">
                             {validatorType === 'account' ? (
-                                <div className="grid grid-cols-2 gap-4 text-left">
+                                <div className="grid grid-cols-2 gap-4">
                                     <div><label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Clearingnummer</label><input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder="8105" className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
                                     <div><label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Kontonummer</label><input type="text" value={valInput2} onChange={(e) => setValInput2(e.target.value)} placeholder="993422324" className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
                                 </div>
                             ) : (
-                                <div className="text-left"><label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{validatorType === 'zip' ? 'Postnummer' : 'Nummer'}</label><input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder={validatorType === 'ssn' ? "ÅÅMMDD-XXXX" : validatorType === 'zip' ? "111 22" : "Nummer"} className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
+                                <div><label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{validatorType === 'zip' ? 'Postnummer' : 'Nummer'}</label><input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder={validatorType === 'ssn' ? "ÅÅMMDD-XXXX" : validatorType === 'zip' ? "111 22" : "Nummer"} className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
                             )}
                             <div className={`p-4 rounded-xl border flex items-center space-x-4 transition-colors ${valResult?.valid ? 'bg-green-50 border-green-200 text-green-800' : !valInput && validatorType !== 'account' ? 'bg-gray-50 border-gray-200 text-gray-500' : (!valInput || !valInput2) && validatorType === 'account' ? 'bg-gray-50 border-gray-200 text-gray-500' : 'bg-red-50 border-red-200 text-red-800'}`}>
                                 {valResult?.valid ? <Check size={20} /> : <ShieldCheck size={20} />}
@@ -458,11 +278,11 @@ export default function Generator() {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-left">
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between"><span className="text-sm font-medium text-gray-700">Resultat</span><span className="text-xs font-mono text-gray-400">JSON</span></div>
                 <div className="p-6">
                     {activeTab === 'personnummer' || activeTab === 'samordningsnummer' ? (
-                    <div className="grid gap-6 md:grid-cols-2 text-left">
+                    <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-6">
                         <CodeBlock label="Personnummer" value={(data as Person)?.ssn} />
                         <div className="grid grid-cols-2 gap-4"><CodeBlock label="Förnamn" value={(data as Person)?.firstName} /><CodeBlock label="Efternamn" value={(data as Person)?.lastName} /></div>
@@ -473,13 +293,25 @@ export default function Generator() {
                         </div>
                     </div>
                     ) : activeTab === 'company' ? (
-                    <div className="grid gap-6 md:grid-cols-2 text-left"><div className="space-y-6"><CodeBlock label="Organisationsnummer" value={(data as Company)?.orgNumber} /><CodeBlock label="Företagsnamn" value={(data as Company)?.name} /></div><div className="space-y-6"><CodeBlock label="Momsnummer (VAT)" value={(data as Company)?.vatNumber} /></div></div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-6"><CodeBlock label="Organisationsnummer" value={(data as Company)?.orgNumber} /><CodeBlock label="Företagsnamn" value={(data as Company)?.name} /></div>
+                        <div className="space-y-6"><CodeBlock label="Momsnummer (VAT)" value={(data as Company)?.vatNumber} /></div>
+                    </div>
                     ) : activeTab === 'bankgiro' || activeTab === 'plusgiro' ? (
-                    <div className="grid gap-6 md:grid-cols-2 text-left"><div className="space-y-6"><CodeBlock label={activeTab === 'bankgiro' ? "Bankgiro" : "Plusgiro"} value={(data as any)?.[activeTab]} /></div><div className="space-y-6"><CodeBlock label="Bank" value={(data as any)?.bank} /></div></div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-6"><CodeBlock label={activeTab === 'bankgiro' ? "Bankgiro" : "Plusgiro"} value={(data as any)?.[activeTab]} /></div>
+                        <div className="space-y-6"><CodeBlock label="Bank" value={(data as any)?.bank} /></div>
+                    </div>
                     ) : activeTab === 'ocr' ? (
-                    <div className="grid gap-6 md:grid-cols-2 text-left"><div className="space-y-6"><CodeBlock label="OCR-nummer" value={(data as OCR)?.ocr} /></div><div className="space-y-6"><CodeBlock label="Längd" value={(data as OCR)?.length} /></div></div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-6"><CodeBlock label="OCR-nummer" value={(data as OCR)?.ocr} /></div>
+                        <div className="space-y-6"><CodeBlock label="Längd" value={(data as OCR)?.length} /></div>
+                    </div>
                     ) : (
-                    <div className="grid gap-6 md:grid-cols-2 text-left"><div className="space-y-6"><CodeBlock label="Bank" value={(data as BankAccount)?.bank} /><CodeBlock label="Clearingnummer" value={(data as BankAccount)?.clearing} /></div><div className="space-y-6"><CodeBlock label="Kontonummer" value={(data as BankAccount)?.account} /></div></div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-6"><CodeBlock label="Bank" value={(data as BankAccount)?.bank} /><CodeBlock label="Clearingnummer" value={(data as BankAccount)?.clearing} /></div>
+                        <div className="space-y-6"><CodeBlock label="Kontonummer" value={(data as BankAccount)?.account} /></div>
+                    </div>
                     )}
                 </div>
                 </div>

@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { luhnCheck, BANK_RANGES, generateOCR, getRandomElement, ValidationResult } from './utils';
+import { BANK_RANGES, generateOCR, getRandomElement, ValidationResult } from './utils';
+import { mod10 } from './bank-math';
 
 // --- Interfaces ---
 
@@ -153,7 +154,7 @@ async function loadData<T>(type: keyof Cache, validator: (data: unknown) => data
 
 function getLuhnDigit(payload: string): string {
     for (let i = 0; i <= 9; i++) {
-        if (luhnCheck(payload + i)) {
+        if (mod10(payload + i)) {
             return i.toString();
         }
     }

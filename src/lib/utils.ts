@@ -1,24 +1,5 @@
 import { validateSwedishBank, BANK_DATA } from './bank-rules';
-
-/**
- * Beräknar Luhn-kontrollsumma för en siffersträng.
- */
-export function luhnCheck(str: string): boolean {
-    const cleanStr = str.replace(/\D/g, '');
-    if (!cleanStr) return false;
-    
-    let sum = 0;
-    let shouldDouble = false;
-    for (let i = cleanStr.length - 1; i >= 0; i--) {
-        let digit = parseInt(cleanStr.charAt(i));
-        if (shouldDouble) {
-            if ((digit *= 2) > 9) digit -= 9;
-        }
-        sum += digit;
-        shouldDouble = !shouldDouble;
-    }
-    return (sum % 10) === 0;
-}
+import { mod10 } from './bank-math';
 
 export interface ValidationResult {
     valid: boolean;
@@ -38,7 +19,7 @@ export function validatePersonnummer(ssn: string): ValidationResult {
     
     // Luhn körs alltid på 10 siffror
     const tenDigit = clean.length === 12 ? clean.slice(2) : clean;
-    if (!luhnCheck(tenDigit)) return { valid: false, error: 'Felaktig kontrollsiffra (Luhn)' };
+    if (!mod10(tenDigit)) return { valid: false, error: 'Felaktig kontrollsiffra (Luhn)' };
     
     let month = parseInt(tenDigit.slice(2, 4));
     let day = parseInt(tenDigit.slice(4, 6));
@@ -64,7 +45,7 @@ export function validateOrgNumber(org: string): ValidationResult {
     if (clean.length !== 10 && clean.length !== 12) return { valid: false, error: 'Felaktig längd' };
     const tenDigit = clean.length === 12 ? clean.slice(2) : clean;
     
-    if (!luhnCheck(tenDigit)) return { valid: false, error: 'Felaktig kontrollsiffra' };
+    if (!mod10(tenDigit)) return { valid: false, error: 'Felaktig kontrollsiffra' };
     
     const middlePair = parseInt(tenDigit.slice(2, 4));
     if (middlePair < 20) return { valid: false, error: 'Ogiltigt organisationsnummer (mellanpar < 20)' };
@@ -83,13 +64,13 @@ export function validateVAT(vat: string): ValidationResult {
 export function validateBankgiro(bg: string): ValidationResult {
     const clean = bg.replace(/\D/g, '');
     if (clean.length < 7 || clean.length > 8) return { valid: false, error: 'Felaktig längd' };
-    return { valid: luhnCheck(clean), error: luhnCheck(clean) ? null : 'Felaktig kontrollsiffra' };
+    return { valid: mod10(clean), error: mod10(clean) ? null : 'Felaktig kontrollsiffra' };
 }
 
 export function validatePlusgiro(pg: string): ValidationResult {
     const clean = pg.replace(/\D/g, '');
     if (clean.length < 2 || clean.length > 8) return { valid: false, error: 'Felaktig längd' };
-    return { valid: luhnCheck(clean), error: luhnCheck(clean) ? null : 'Felaktig kontrollsiffra' };
+    return { valid: mod10(clean), error: mod10(clean) ? null : 'Felaktig kontrollsiffra' };
 }
 
 export const BANK_RANGES = BANK_DATA;
@@ -106,7 +87,7 @@ export function generateOCR(length = 10, lengthCheck = false): string {
     if (lengthCheck) payload += (length % 10).toString();
     
     const getDigit = (p: string) => {
-        for (let i = 0; i <= 9; i++) if (luhnCheck(p + i)) return i.toString();
+        for (let i = 0; i <= 9; i++) if (mod10(p + i)) return i.toString();
         return '0';
     };
     return payload + getDigit(payload);
@@ -115,7 +96,7 @@ export function generateOCR(length = 10, lengthCheck = false): string {
 export function validateOCR(ocr: string): ValidationResult {
     const clean = ocr.replace(/\D/g, '');
     if (clean.length < 2) return { valid: false, error: 'För kort' };
-    if (!luhnCheck(clean)) return { valid: false, error: 'Felaktig kontrollsiffra' };
+    if (!mod10(clean)) return { valid: false, error: 'Felaktig kontrollsiffra' };
     return { valid: true };
 }
 
