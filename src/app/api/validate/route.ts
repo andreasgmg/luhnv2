@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { validateAddress } from '../../../lib/data-provider';
 import { 
     validatePersonnummer, 
@@ -6,16 +6,16 @@ import {
     validateVAT, 
     validateBankgiro, 
     validatePlusgiro,
-    validateBankAccount 
+    validateBankAccount,
+    ValidationResult
 } from '../../../lib/utils';
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
   const value = searchParams.get('value');
-  const value2 = searchParams.get('value2'); // For account number or City
+  const value2 = searchParams.get('value2');
 
-  // HTTP 400 Bad Request for missing mandatory parameters
   if (!type) {
       return NextResponse.json({ error: 'Missing parameter: type' }, { status: 400 });
   }
@@ -23,9 +23,8 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Missing parameter: value' }, { status: 400 });
   }
 
-  let result = { valid: false };
+  let result: ValidationResult = { valid: false };
 
-  // We await everything to be future-proof and handle the async validateAddress
   switch (type) {
       case 'address':
       case 'zip':
@@ -34,30 +33,30 @@ export async function GET(request) {
       case 'ssn':
       case 'personnummer':
       case 'samordningsnummer':
-          result = await validatePersonnummer(value);
+          result = validatePersonnummer(value);
           break;
       case 'org':
       case 'organisation':
-          result = await validateOrgNumber(value);
+          result = validateOrgNumber(value);
           break;
       case 'vat':
       case 'moms':
-          result = await validateVAT(value);
+          result = validateVAT(value);
           break;
       case 'bg':
       case 'bankgiro':
-          result = await validateBankgiro(value);
+          result = validateBankgiro(value);
           break;
       case 'pg':
       case 'plusgiro':
-          result = await validatePlusgiro(value);
+          result = validatePlusgiro(value);
           break;
       case 'account':
       case 'bank_account':
           if (!value2) {
               return NextResponse.json({ error: 'Missing parameter: value2 (required for account number)' }, { status: 400 });
           }
-          result = await validateBankAccount(value, value2);
+          result = validateBankAccount(value, value2);
           break;
       default:
           return NextResponse.json({ error: `Invalid validation type: ${type}` }, { status: 400 });

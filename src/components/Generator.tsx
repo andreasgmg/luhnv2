@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,21 +11,23 @@ import {
     validateVAT, 
     validateBankgiro, 
     validatePlusgiro,
-    validateBankAccount 
+    validateBankAccount,
+    ValidationResult
 } from '../lib/utils';
 
-// --- Shared Components for Home Tab ---
+// --- Shared Components ---
 
-const DotGridBackground = () => (
+const DotGridBackground: React.FC = () => (
   <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 );
 
-const CopyButton = ({ text }) => {
+const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   const [copied, setCopied] = useState(false);
   
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
+    toast.success('Kopierad till urklipp');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -36,7 +38,7 @@ const CopyButton = ({ text }) => {
   );
 };
 
-const TerminalWindow = () => (
+const TerminalWindow: React.FC = () => (
   <div className="relative z-10 rounded-xl overflow-hidden bg-[#0d1117] border border-gray-800 shadow-2xl ring-1 ring-white/10">
     <div className="flex items-center px-4 py-3 bg-[#161b22] border-b border-gray-800">
       <div className="flex space-x-2">
@@ -48,7 +50,7 @@ const TerminalWindow = () => (
         <span className="text-xs font-mono text-gray-500">api-client — bash</span>
       </div>
     </div>
-    <div className="p-6 font-mono text-sm leading-relaxed text-left">
+    <div className="p-6 font-mono text-sm leading-relaxed text-left text-gray-300">
       <div className="flex items-start mb-4 group">
         <span className="text-gray-500 mr-3 select-none">$</span>
         <div className="flex-1">
@@ -57,7 +59,7 @@ const TerminalWindow = () => (
         </div>
         <CopyButton text='curl "https://luhn.se/api/generate?type=personnummer"' />
       </div>
-      <div className="text-gray-300">
+      <div>
         <span className="block text-gray-500 select-none mb-1"># Output</span>
         <span className="block text-[#e6edf3]">{`{`}</span>
         <span className="block text-[#e6edf3] ml-4">
@@ -78,7 +80,7 @@ const TerminalWindow = () => (
 export default function Generator() {
   const pathname = usePathname();
   
-  const getTabFromPath = (path) => {
+  const getTabFromPath = (path: string): string => {
     if (path.startsWith('/validator')) return 'validator';
     if (path.startsWith('/api-docs')) return 'api';
     switch(path) {
@@ -94,34 +96,33 @@ export default function Generator() {
     }
   };
 
-  const getValidatorTypeFromPath = (path) => {
+  const getValidatorTypeFromPath = (path: string): string => {
     if (path.includes('/validator/personnummer')) return 'ssn';
     if (path.includes('/validator/organisation')) return 'org';
     if (path.includes('/validator/moms')) return 'vat';
-    if (path.includes('/validator/adress')) return 'zip';
     if (path.includes('/validator/bankgiro')) return 'bg';
     if (path.includes('/validator/plusgiro')) return 'pg';
     if (path.includes('/validator/bankkonto')) return 'account';
     return 'ssn';
   };
 
-  const activeTab = getTabFromPath(pathname);
-  const [data, setData] = useState(null);
+  const activeTab = getTabFromPath(pathname || '/');
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [validatorType, setValidatorType] = useState(getValidatorTypeFromPath(pathname));
+  const [validatorType, setValidatorType] = useState(getValidatorTypeFromPath(pathname || '/'));
   const [valInput, setValInput] = useState('');
   const [valInput2, setValInput2] = useState(''); 
-  const [valResult, setValResult] = useState(null);
+  const [valResult, setValResult] = useState<ValidationResult | null>(null);
 
   useEffect(() => {
-    setValidatorType(getValidatorTypeFromPath(pathname));
+    setValidatorType(getValidatorTypeFromPath(pathname || '/'));
     setValInput('');
     setValInput2('');
     setValResult(null);
   }, [pathname]);
 
-  const fetchData = async (type) => {
+  const fetchData = async (type: string) => {
     if (type === 'validator' || type === 'api' || type === 'home') return;
     setLoading(true);
     try {
@@ -139,45 +140,29 @@ export default function Generator() {
 
   useEffect(() => {
     if (activeTab !== 'validator') return;
-
-    const performValidation = async () => {
-        let res = { valid: false };
+    const performVal = async () => {
+        if (!valInput && validatorType !== 'account') { setValResult(null); return; }
+        if (validatorType === 'account' && (!valInput || !valInput2)) { setValResult(null); return; }
         
-        if (!valInput && validatorType !== 'account') {
-            setValResult(null);
-            return;
-        }
-
-        // Server-side validation for Zip Codes
-        if (validatorType === 'zip') {
-            try {
-                const apiRes = await fetch(`/api/validate?type=zip&value=${valInput}`);
-                res = await apiRes.json();
-            } catch (e) {
-                res = { valid: false, error: 'Serverfel' };
-            }
-        } 
-        else if (validatorType === 'ssn') res = validatePersonnummer(valInput);
+        let res: ValidationResult = { valid: false };
+        if (validatorType === 'ssn') res = validatePersonnummer(valInput);
         else if (validatorType === 'org') res = validateOrgNumber(valInput);
         else if (validatorType === 'vat') res = validateVAT(valInput);
         else if (validatorType === 'bg') res = validateBankgiro(valInput);
         else if (validatorType === 'pg') res = validatePlusgiro(valInput);
         else if (validatorType === 'account') res = validateBankAccount(valInput, valInput2);
-        
         setValResult(res);
     };
-
-    performValidation();
-
+    performVal();
   }, [validatorType, valInput, valInput2, activeTab]);
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
     toast.success('Kopierad till urklipp');
   };
 
-  const NavItem = ({ href, id, label, icon: Icon }) => {
+  const NavItem: React.FC<{ href: string, id: string, label: string, icon: any }> = ({ href, id, label, icon: Icon }) => {
     const isActive = activeTab === id;
     return (
       <Link
@@ -195,13 +180,13 @@ export default function Generator() {
     );
   };
 
-  const CodeBlock = ({ label, value }) => (
+  const CodeBlock: React.FC<{ label: string, value: string | number }> = ({ label, value }) => (
     <div className="group relative">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
       </div>
       <div 
-        onClick={() => copyToClipboard(value)}
+        onClick={() => copyToClipboard(String(value))}
         className="relative bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-500 hover:shadow-sm transition-all"
       >
         <code className="font-mono text-sm text-gray-900 break-all">{value || '...'}</code>
@@ -212,10 +197,10 @@ export default function Generator() {
     </div>
   );
 
-  const EndpointExample = ({ method, url, desc }) => {
-    const [response, setResponse] = useState(null);
+  const EndpointExample: React.FC<{ method: string, url: string, desc: string }> = ({ method, url, desc }) => {
+    const [response, setResponse] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [status, setStatus] = useState(null);
+    const [status, setStatus] = useState<{code: any, time: number} | null>(null);
 
     const runRequest = async () => {
       setIsLoading(true);
@@ -249,14 +234,14 @@ export default function Generator() {
           </div>
           <p className="text-sm text-gray-600">{desc}</p>
         </div>
-        <div className="bg-slate-900 p-4 font-mono text-xs text-blue-300 overflow-x-auto relative group">
+        <div className="bg-slate-900 p-4 font-mono text-xs text-blue-300 overflow-x-auto relative group text-left">
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
              <button onClick={() => copyToClipboard(`curl "https://luhn.se${url}"`)} className="p-1.5 bg-slate-800 text-slate-400 rounded hover:text-white"><Copy size={12} /></button>
           </div>
           <div>curl "https://luhn.se{url}"</div>
         </div>
         {response && (
-          <div className="border-t border-gray-200 bg-slate-50 p-4">
+          <div className="border-t border-gray-200 bg-slate-50 p-4 text-left">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Response</span>
               {status && <div className="flex space-x-3 text-xs font-mono"><span className={status.code === 200 ? 'text-green-600' : 'text-red-600'}>{status.code} OK</span><span className="text-gray-400">{status.time}ms</span></div>}
@@ -268,7 +253,7 @@ export default function Generator() {
     );
   };
 
-  const FeatureCard = ({ href, title, desc, icon: Icon }) => (
+  const FeatureCard: React.FC<{ href: string, title: string, desc: string, icon: any }> = ({ href, title, desc, icon: Icon }) => (
     <Link href={href} className="group h-full p-6 bg-white border border-gray-200 rounded-2xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/5 transition-all flex flex-col text-left">
       <div className="flex items-center justify-between mb-4">
         <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -371,13 +356,13 @@ export default function Generator() {
       <div className="flex-1 h-full overflow-y-auto pt-16 lg:pt-0 relative scroll-smooth">
         {activeTab === 'home' && <DotGridBackground />}
         
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left">
           
           {activeTab !== 'home' && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4 text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4">
                 <div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2 capitalize">
-                    {activeTab === 'api' ? 'API-referens' : activeTab === 'company' ? 'Organisationsnummer' : activeTab === 'bank_account' ? 'Bankkonto' : activeTab === 'validator' ? 'Validerare' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                    {getTitle()}
                 </h1>
                 <p className="text-gray-500">
                     {getDescription()}
@@ -452,8 +437,8 @@ export default function Generator() {
                 </div>
               </div>
             ) : activeTab === 'api' ? (
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden p-8">
-                <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-100 text-left">
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden p-8 text-left">
+                <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-100">
                     <div className="prose max-w-none text-gray-600 text-sm leading-relaxed">
                         <p>Ett REST-API byggt för utvecklare. Inga nycklar, ingen auth, generösa gränser (Fair Use). Anropa våra endpoints direkt från din frontend, backend eller testsvit med fullt CORS-stöd. För att skydda tjänsten tillämpar vi en rate-limit på 60 anrop per minut.</p>
                     </div>
@@ -462,7 +447,7 @@ export default function Generator() {
                         <span>OpenAPI Spec</span>
                     </a>
                 </div>
-                <div className="prose max-w-none text-gray-600 text-left">
+                <div className="prose max-w-none text-gray-600">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center"><Server size={20} className="mr-2" />Generering</h3>
                   <EndpointExample method="GET" url="/api/generate?type=personnummer" desc="Generera en slumpmässig syntetisk person med ett giltigt Personnummer." />
                   <EndpointExample method="GET" url="/api/generate?type=company" desc="Generera ett slumpmässigt företag med giltigt Organisationsnummer och Momsnummer." />
@@ -475,7 +460,7 @@ export default function Generator() {
                 </div>
               </div>
             ) : activeTab === 'validator' ? (
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-left">
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                     <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-700">Validering</span>
                         <span className="text-xs font-mono text-gray-400">INPUT</span>
@@ -522,14 +507,14 @@ export default function Generator() {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-left">
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">Resultat</span>
                     <span className="text-xs font-mono text-gray-400">JSON</span>
                 </div>
                 <div className="p-6">
                     {activeTab === 'personnummer' || activeTab === 'samordningsnummer' ? (
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2 text-left">
                         <div className="space-y-6">
                         <CodeBlock label="Personnummer" value={data?.ssn} />
                         <div className="grid grid-cols-2 gap-4"><CodeBlock label="Förnamn" value={data?.firstName} /><CodeBlock label="Efternamn" value={data?.lastName} /></div>
@@ -540,22 +525,22 @@ export default function Generator() {
                         </div>
                     </div>
                     ) : activeTab === 'company' ? (
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2 text-left">
                         <div className="space-y-6"><CodeBlock label="Organisationsnummer" value={data?.orgNumber} /><CodeBlock label="Företagsnamn" value={data?.name} /></div>
                         <div className="space-y-6"><CodeBlock label="Momsnummer (VAT)" value={data?.vatNumber} /></div>
                     </div>
                     ) : activeTab === 'bankgiro' ? (
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2 text-left">
                         <div className="space-y-6"><CodeBlock label="Bankgiro" value={data?.bankgiro} /></div>
                         <div className="space-y-6"><CodeBlock label="Bank" value={data?.bank} /></div>
                     </div>
                     ) : activeTab === 'plusgiro' ? (
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2 text-left">
                         <div className="space-y-6"><CodeBlock label="Plusgiro" value={data?.plusgiro} /></div>
                         <div className="space-y-6"><CodeBlock label="Bank" value={data?.bank} /></div>
                     </div>
                     ) : activeTab === 'ocr' ? (
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2 text-left">
                         <div className="space-y-6"><CodeBlock label="OCR-nummer" value={data?.ocr} /></div>
                         <div className="space-y-6">
                             <CodeBlock label="Längd" value={data?.length} />
@@ -563,7 +548,7 @@ export default function Generator() {
                         </div>
                     </div>
                     ) : (
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2 text-left">
                         <div className="space-y-6"><CodeBlock label="Bank" value={data?.bank} /><CodeBlock label="Clearingnummer" value={data?.clearing} /></div>
                         <div className="space-y-6"><CodeBlock label="Kontonummer" value={data?.account} /></div>
                     </div>

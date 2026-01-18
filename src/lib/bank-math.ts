@@ -2,11 +2,11 @@
  * Standard Luhn (Modulo 10) algorithm.
  * Used by Swedbank, Nordea Personkonto, etc.
  */
-export function mod10(number) {
+export function mod10(number: string): boolean {
     let len = number.length;
     let bit = 1;
     let sum = 0;
-    let val;
+    let val: number;
     let arr = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9];
   
     while (len) {
@@ -14,7 +14,7 @@ export function mod10(number) {
       sum += (bit ^= 1) ? arr[val] : val;
     }
   
-    return sum && sum % 10 === 0;
+    return sum > 0 && sum % 10 === 0;
   }
   
   /**
@@ -22,7 +22,7 @@ export function mod10(number) {
    * Used by Handelsbanken, SEB, etc.
    * Weights: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2...
    */
-  export function mod11(number) {
+  export function mod11(number: string): boolean {
     const len = number.length;
     let sum = 0;
     let weight = 1;
@@ -34,5 +34,5 @@ export function mod10(number) {
       if (weight > 10) weight = 1;
     }
   
-    return sum && sum % 11 === 0;
+    return sum > 0 && sum % 11 === 0;
   }

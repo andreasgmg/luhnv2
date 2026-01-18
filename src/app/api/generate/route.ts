@@ -1,18 +1,18 @@
+import { NextRequest, NextResponse } from 'next/server';
 import { getOfficialIdentity } from '../../../lib/data-provider';
 
 // Helper för XML-escaping
-function escapeXML(val) {
+function escapeXML(val: any): string {
     if (val === null || val === undefined) return '';
     return String(val)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
 }
 
 // Helper för XML-generering
-function toXML(obj, type) {
+function toXML(obj: any, type: string): string {
     let xml = `<${type}>
 `;
     for (let key in obj) {
@@ -36,16 +36,13 @@ function toXML(obj, type) {
 }
 
 // Helper för korrekt CSV-escaping
-function escapeCSV(val) {
+function escapeCSV(val: any): string {
     if (val === null || val === undefined) return '';
     const str = String(val);
     return `"${str.replace(/"/g, '""')}"`;
 }
 
-/**
- * API v3 - Streaming Support
- */
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') || 'personnummer';
   const format = searchParams.get('format') || 'json';
@@ -89,16 +86,17 @@ export async function GET(request) {
         if (format === 'json') {
           chunk = (i > 0 && count > 1 ? ',' : '') + JSON.stringify(identity);
         } else if (format === 'csv') {
+          const id = identity as any;
           if (type === 'company') {
-            chunk = `${identity.orgNumber},${escapeCSV(identity.name)},${identity.vatNumber}\n`;
+            chunk = `${id.orgNumber},${escapeCSV(id.name)},${id.vatNumber}\n`;
           } else if (type === 'bankgiro' || type === 'plusgiro') {
-            chunk = `${identity.bankgiro || identity.plusgiro},${escapeCSV(identity.bank)}\n`;
+            chunk = `${id.bankgiro || id.plusgiro},${escapeCSV(id.bank)}\n`;
           } else if (type === 'bank_account') {
-            chunk = `${escapeCSV(identity.bank)},${identity.clearing},${identity.account}\n`;
+            chunk = `${escapeCSV(id.bank)},${id.clearing},${id.account}\n`;
           } else if (type === 'ocr') {
-            chunk = `${identity.ocr},${identity.length},${identity.lengthCheck}\n`;
+            chunk = `${id.ocr},${id.length},${id.lengthCheck}\n`;
           } else {
-            chunk = `${identity.ssn},${escapeCSV(identity.firstName)},${escapeCSV(identity.lastName)},${identity.gender},${escapeCSV(identity.address.street)},${identity.address.zip},${escapeCSV(identity.address.city)}\n`;
+            chunk = `${id.ssn},${escapeCSV(id.firstName)},${escapeCSV(id.lastName)},${id.gender},${escapeCSV(id.address.street)},${id.address.zip},${escapeCSV(id.address.city)}\n`;
           }
         } else if (format === 'xml') {
           chunk = toXML(identity, 'item');
@@ -118,7 +116,7 @@ export async function GET(request) {
     },
   });
 
-  const contentTypes = {
+  const contentTypes: Record<string, string> = {
     json: 'application/json',
     csv: 'text/csv',
     xml: 'application/xml'
