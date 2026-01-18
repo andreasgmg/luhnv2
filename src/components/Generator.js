@@ -98,6 +98,7 @@ export default function Generator() {
     if (path.includes('/validator/personnummer')) return 'ssn';
     if (path.includes('/validator/organisation')) return 'org';
     if (path.includes('/validator/moms')) return 'vat';
+    if (path.includes('/validator/adress')) return 'zip';
     if (path.includes('/validator/bankgiro')) return 'bg';
     if (path.includes('/validator/plusgiro')) return 'pg';
     if (path.includes('/validator/bankkonto')) return 'account';
@@ -138,16 +139,36 @@ export default function Generator() {
 
   useEffect(() => {
     if (activeTab !== 'validator') return;
-    if (!valInput && validatorType !== 'account') { setValResult(null); return; }
-    if (validatorType === 'account' && (!valInput || !valInput2)) { setValResult(null); return; }
-    let res = { valid: false };
-    if (validatorType === 'ssn') res = validatePersonnummer(valInput);
-    else if (validatorType === 'org') res = validateOrgNumber(valInput);
-    else if (validatorType === 'vat') res = validateVAT(valInput);
-    else if (validatorType === 'bg') res = validateBankgiro(valInput);
-    else if (validatorType === 'pg') res = validatePlusgiro(valInput);
-    else if (validatorType === 'account') res = validateBankAccount(valInput, valInput2);
-    setValResult(res);
+
+    const performValidation = async () => {
+        let res = { valid: false };
+        
+        if (!valInput && validatorType !== 'account') {
+            setValResult(null);
+            return;
+        }
+
+        // Server-side validation for Zip Codes
+        if (validatorType === 'zip') {
+            try {
+                const apiRes = await fetch(`/api/validate?type=zip&value=${valInput}`);
+                res = await apiRes.json();
+            } catch (e) {
+                res = { valid: false, error: 'Serverfel' };
+            }
+        } 
+        else if (validatorType === 'ssn') res = validatePersonnummer(valInput);
+        else if (validatorType === 'org') res = validateOrgNumber(valInput);
+        else if (validatorType === 'vat') res = validateVAT(valInput);
+        else if (validatorType === 'bg') res = validateBankgiro(valInput);
+        else if (validatorType === 'pg') res = validatePlusgiro(valInput);
+        else if (validatorType === 'account') res = validateBankAccount(valInput, valInput2);
+        
+        setValResult(res);
+    };
+
+    performValidation();
+
   }, [validatorType, valInput, valInput2, activeTab]);
 
   const copyToClipboard = (text) => {
@@ -465,6 +486,7 @@ export default function Generator() {
                                 {id: 'ssn', label: 'Personnummer', href: '/validator/personnummer'},
                                 {id: 'org', label: 'Organisation', href: '/validator/organisation'},
                                 {id: 'vat', label: 'Moms (VAT)', href: '/validator/moms'},
+                                {id: 'zip', label: 'Adress', href: '/validator/adress'},
                                 {id: 'bg', label: 'Bankgiro', href: '/validator/bankgiro'},
                                 {id: 'pg', label: 'Plusgiro', href: '/validator/plusgiro'},
                                 {id: 'account', label: 'Bankkonto', href: '/validator/bankkonto'}
@@ -486,8 +508,8 @@ export default function Generator() {
                                 </div>
                             ) : (
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Nummer</label>
-                                    <input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder={validatorType === 'ssn' ? "ÅÅMMDD-XXXX" : "Nummer"} className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{validatorType === 'zip' ? 'Postnummer' : 'Nummer'}</label>
+                                    <input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder={validatorType === 'ssn' ? "ÅÅMMDD-XXXX" : validatorType === 'zip' ? "111 22" : "Nummer"} className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                                 </div>
                             )}
                             <div className={`p-4 rounded-xl border flex items-center space-x-4 transition-colors ${valResult?.valid ? 'bg-green-50 border-green-200 text-green-800' : !valInput && validatorType !== 'account' ? 'bg-gray-50 border-gray-200 text-gray-500' : (!valInput || !valInput2) && validatorType === 'account' ? 'bg-gray-50 border-gray-200 text-gray-500' : 'bg-red-50 border-red-200 text-red-800'}`}>

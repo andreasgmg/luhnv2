@@ -141,8 +141,10 @@ export function validateOCR(ocr) {
 
     // Advanced: Check for Length Indicator (Hard check)
     // This is tricky because we don't know IF the number uses length check just by looking at it.
-    // Usually systems know "This BG requires length check".
-    // We will validate strictly on Luhn for now.
-    
     return { valid: true };
+}
+
+export function getRandomElement(arr) {
+  if (!arr || arr.length === 0) return null;
+  return arr[Math.floor(Math.random() * arr.length)];
 }
