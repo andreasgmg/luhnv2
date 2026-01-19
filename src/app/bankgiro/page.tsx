@@ -1,13 +1,10 @@
 import Generator from '../../components/Generator';
 
 export const metadata = {
-  title: 'Generera Bankgironummer | Luhn.se',
-  description: 'Skapa giltiga svenska bankgironummer för test av betalsystem. Använder säkra testserier (998-xxxx).',
-  alternates: {
-    canonical: 'https://luhn.se/bankgiro',
-  },
+  title: 'Generera Bankgiro | Luhn.se',
+  description: 'Testa betalningar med giltiga bankgironummer (testserien 998-xxxx).',
 };
 
 export default function Page() {
-  return <Generator />;
+  return <Generator type="bankgiro" />;
 }

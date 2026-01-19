@@ -1,13 +1,10 @@
 import Generator from '../../components/Generator';
 
 export const metadata = {
-  title: 'Generera Svenska Personnummer | Luhn.se',
-  description: 'Skapa giltiga, syntetiska svenska personnummer (SSN) med namn och adresser för testning. Validerade kontrollsiffror.',
-  alternates: {
-    canonical: 'https://luhn.se/personnummer',
-  },
+  title: 'Generera Personnummer | Luhn.se',
+  description: 'Skapa giltiga, syntetiska personnummer för test och utveckling. Inklusive namn och adress.',
 };
 
 export default function Page() {
-  return <Generator />;
+  return <Generator type="personnummer" />;
 }

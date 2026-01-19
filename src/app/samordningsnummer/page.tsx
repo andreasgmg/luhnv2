@@ -2,12 +2,9 @@ import Generator from '../../components/Generator';
 
 export const metadata = {
   title: 'Generera Samordningsnummer | Luhn.se',
-  description: 'Generera giltiga samordningsnummer för testning. Följer Skatteverkets format för individer utan personnummer.',
-  alternates: {
-    canonical: 'https://luhn.se/samordningsnummer',
-  },
+  description: 'Testdata för individer med samordningsnummer (Dag + 60).',
 };
 
 export default function Page() {
-  return <Generator />;
+  return <Generator type="samordningsnummer" />;
 }

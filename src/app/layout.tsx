@@ -1,5 +1,7 @@
 import { Inter } from "next/font/google";
+import { Toaster } from 'sonner';
 import "./globals.css";
+import Navigation from "../components/Navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,7 +51,15 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <div className="flex h-screen bg-white overflow-hidden text-left">
+          <Toaster position="top-right" />
+          <Navigation />
+          <div className="flex-1 h-full overflow-y-auto pt-16 lg:pt-0 relative scroll-smooth">
+            {children}
+          </div>
+        </div>
+      </body>
     </html>
   );
 }

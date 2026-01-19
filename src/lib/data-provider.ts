@@ -1,7 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { BANK_RANGES, generateOCR, getRandomElement, ValidationResult } from './utils';
 import { mod10 } from './bank-math';
+import { BANK_DATA } from './bank-data';
+import { getRandomElement } from './helpers';
+import { generateOCR } from './generators';
+import { ValidationResult } from './validators';
 
 // --- Interfaces ---
 
@@ -124,7 +127,6 @@ async function loadData<T>(type: keyof Cache, validator: (data: unknown) => data
 
     let processed: unknown = json;
 
-    // Special logic for SSN lists which are nested by year in the raw JSON
     if (type === 'personnummer' || type === 'samordningsnummer') {
       if (typeof json === 'object' && json !== null && !Array.isArray(json)) {
         processed = Object.values(json).reduce<string[]>((acc, val) => {
@@ -144,8 +146,7 @@ async function loadData<T>(type: keyof Cache, validator: (data: unknown) => data
     return processed as T;
   } catch (error) {
     console.error(`❌ Failed to load ${type}:`, (error as Error).message);
-    // Return empty state matching the expected type to avoid crashing
-    if (type === 'names') throw error; // Critical failure
+    if (type === 'names') throw error;
     return [] as unknown as T;
   }
 }
@@ -173,19 +174,24 @@ function getYearFromSSN(ssn: string): number {
     let yearPart = 0;
     let monthPart = 0;
 
+    const OVERNUMMERSERIE_20 = 20;
+    const OVERNUMMERSERIE_40 = 40;
+    const OVERNUMMERSERIE_60 = 60;
+
     if (clean.length === 12) {
-        yearPart = parseInt(clean.substring(0, 4));
-        monthPart = parseInt(clean.substring(4, 6));
+        yearPart = parseInt(clean.substring(0, 4), 10);
+        monthPart = parseInt(clean.substring(4, 6), 10);
     } else if (clean.length === 10) {
-        const yy = parseInt(clean.substring(0, 2));
-        monthPart = parseInt(clean.substring(2, 4));
+        const yy = parseInt(clean.substring(0, 2), 10);
+        monthPart = parseInt(clean.substring(2, 4), 10);
         const currentYear = new Date().getFullYear() % 100;
         yearPart = yy > currentYear ? 1900 + yy : 2000 + yy;
     }
 
-    if (monthPart > 60) monthPart -= 60;
-    else if (monthPart > 40) monthPart -= 40;
-    else if (monthPart > 20) monthPart -= 20;
+    // Normalisera månad om det är en övernummerserie
+    if (monthPart > OVERNUMMERSERIE_60) monthPart -= OVERNUMMERSERIE_60;
+    else if (monthPart > OVERNUMMERSERIE_40) monthPart -= OVERNUMMERSERIE_40;
+    else if (monthPart > OVERNUMMERSERIE_20) monthPart -= OVERNUMMERSERIE_20;
 
     return yearPart;
 }
@@ -204,7 +210,7 @@ export function generateOrgNumber(): string {
 }
 
 export async function generateBankAccount(): Promise<Omit<BankAccount, 'type'>> {
-    const bankConfig = getRandomElement(BANK_RANGES);
+    const bankConfig = getRandomElement(BANK_DATA);
     if (!bankConfig) throw new Error('Bank config missing');
     
     const clearing = Math.floor(Math.random() * (bankConfig.max - bankConfig.min + 1)) + bankConfig.min;
@@ -264,7 +270,7 @@ export async function getOfficialIdentity(
   if (type === 'plusgiro') {
       const pg = Math.floor(Math.random() * 1000000).toString();
       const full = pg + getLuhnDigit(pg);
-      return { plusgiro: `${full.slice(0, -1)}-${full.slice(-1)}` as any, bank: 'Plusgirot', type: 'plusgiro' as any };
+      return { plusgiro: `${full.slice(0, -1)}-${full.slice(-1)}`, bank: 'Plusgirot', type: 'plusgiro' };
   }
 
   if (type === 'bank_account') return { ...(await generateBankAccount()), type: 'bank_account' };

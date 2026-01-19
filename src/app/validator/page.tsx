@@ -1,13 +1,5 @@
-import Generator from '../../components/Generator';
-
-export const metadata = {
-  title: 'Validera Svenska Nummer & Konton | Luhn.se',
-  description: 'Validera personnummer, organisationsnummer, momsnummer, bankgironummer och clearingnummer. Kontrollera checksummor och format.',
-  alternates: {
-    canonical: 'https://luhn.se/validator',
-  },
-};
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <Generator />;
+  redirect('/validator/personnummer');
 }

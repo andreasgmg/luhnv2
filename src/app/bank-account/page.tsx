@@ -1,13 +1,10 @@
 import Generator from '../../components/Generator';
 
 export const metadata = {
-  title: 'Generera Svenska Bankkonton | Luhn.se',
-  description: 'Skapa giltiga svenska bankkonton med korrekt clearingnummer för SEB, Swedbank, Nordea, Handelsbanken och fler.',
-  alternates: {
-    canonical: 'https://luhn.se/bank-account',
-  },
+  title: 'Generera Bankkonto | Luhn.se',
+  description: 'Validerade kontonummer med korrekta clearingserier för svenska banker.',
 };
 
 export default function Page() {
-  return <Generator />;
+  return <Generator type="bank_account" />;
 }
