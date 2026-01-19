@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { Identity, Person, Company, BankAccount, Bankgiro, Plusgiro, OCR } from '../lib/data-provider';
@@ -13,10 +13,14 @@ interface GeneratorProps {
 export default function Generator({ type }: GeneratorProps) {
   const [data, setData] = useState<Identity | null>(null);
   const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false); // Ref to track loading state without triggering re-renders or dependency cycles
 
   const fetchData = useCallback(async () => {
-    if (loading) return; 
+    if (loadingRef.current) return;
+    
+    loadingRef.current = true;
     setLoading(true);
+    
     try {
       const res = await fetch(`/api/generate?type=${type}`);
       const result = await res.json();
@@ -24,10 +28,12 @@ export default function Generator({ type }: GeneratorProps) {
     } catch (e) {
       toast.error("Kunde inte generera data");
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  }, [type]); // 'loading' ska inte vara med här för att undvika stale closures eller loopar, vi kollar det internt
+  }, [type]);
 
+  // Initial fetch on type change
   useEffect(() => {
     fetchData();
   }, [fetchData]);
