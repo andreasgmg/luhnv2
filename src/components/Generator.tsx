@@ -1,5 +1,6 @@
 'use client';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React from 'react';
+import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { Identity, Person, Company, BankAccount, Bankgiro, Plusgiro, OCR } from '../lib/data-provider';
@@ -10,33 +11,33 @@ interface GeneratorProps {
   type: string;
 }
 
+// Fetcher function for SWR
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error('Kunde inte hämta data');
+  }
+  return res.json();
+};
+
 export default function Generator({ type }: GeneratorProps) {
-  const [data, setData] = useState<Identity | null>(null);
-  const [loading, setLoading] = useState(false);
-  const loadingRef = useRef(false); // Ref to track loading state without triggering re-renders or dependency cycles
-
-  const fetchData = useCallback(async () => {
-    if (loadingRef.current) return;
-    
-    loadingRef.current = true;
-    setLoading(true);
-    
-    try {
-      const res = await fetch(`/api/generate?type=${type}`);
-      const result = await res.json();
-      setData(result);
-    } catch (e) {
-      toast.error("Kunde inte generera data");
-    } finally {
-      loadingRef.current = false;
-      setLoading(false);
+  // useSWR handles loading, error, and caching automatically
+  // We use revalidateOnFocus: false because this is random static data
+  const { data, error, isLoading, mutate } = useSWR<Identity>(
+    `/api/generate?type=${type}`, 
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      shouldRetryOnError: false,
+      onError: () => toast.error("Kunde inte generera data")
     }
-  }, [type]);
+  );
 
-  // Initial fetch on type change
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const handleGenerate = () => {
+    // mutate() triggers a re-fetch and updates the cache
+    mutate(); 
+  };
 
   const getTitle = () => {
     switch(type) {
@@ -74,11 +75,11 @@ export default function Generator({ type }: GeneratorProps) {
             <p className="text-gray-500">{getDescription()}</p>
         </div>
         <button 
-            onClick={fetchData} 
-            disabled={loading} 
+            onClick={handleGenerate} 
+            disabled={isLoading} 
             className="inline-flex items-center justify-center px-6 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-all disabled:opacity-50 active:scale-95 whitespace-nowrap"
         >
-            {loading ? 'Genererar...' : 'Generera ny'}
+            {isLoading ? 'Genererar...' : 'Generera ny'}
         </button>
       </div>
 
@@ -115,8 +116,18 @@ export default function Generator({ type }: GeneratorProps) {
                     </div>
                     ) : type === 'bankgiro' || type === 'plusgiro' ? (
                     <div className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-6"><CodeBlock label={type === 'bankgiro' ? "Bankgiro" : "Plusgiro"} value={(data as any)?.[type]} /></div>
-                        <div className="space-y-6"><CodeBlock label="Bank" value={(data as any)?.bank} /></div>
+                        <div className="space-y-6">
+                            <CodeBlock 
+                                label={type === 'bankgiro' ? "Bankgiro" : "Plusgiro"} 
+                                value={type === 'bankgiro' ? (data as Bankgiro)?.bankgiro : (data as Plusgiro)?.plusgiro} 
+                            />
+                        </div>
+                        <div className="space-y-6">
+                            <CodeBlock 
+                                label="Bank" 
+                                value={type === 'bankgiro' ? (data as Bankgiro)?.bank : (data as Plusgiro)?.bank} 
+                            />
+                        </div>
                     </div>
                     ) : type === 'ocr' ? (
                     <div className="grid gap-6 md:grid-cols-2">
@@ -143,7 +154,7 @@ export default function Generator({ type }: GeneratorProps) {
                 </div>
                 <div className="p-6 overflow-x-auto">
                     <pre className="font-mono text-sm text-slate-300 leading-relaxed">
-                        {JSON.stringify(data, null, 2)}
+                        {data ? JSON.stringify(data, null, 2) : error ? 'Error fetching data' : 'Loading...'}
                     </pre>
                 </div>
             </div>

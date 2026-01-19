@@ -10,6 +10,8 @@ export interface ValidationResult {
     suggestedCity?: string;
 }
 
+// --- Domain Constants (Module Scope) ---
+
 // SKV 704 Constants
 const COORDINATION_NUMBER_DAY_OFFSET = 60;
 const OVERNUMMERSERIE_20_OFFSET = 20;
@@ -21,7 +23,16 @@ const MAX_MONTH = 12;
 const MIN_DAY = 1;
 const MAX_DAY = 31;
 
+// Business Rules
 const MIN_ORG_MIDDLE_PAIR = 20;
+const SWEDISH_VAT_PREFIX = 'SE';
+const SWEDISH_VAT_SUFFIX = '01';
+const VAT_LENGTH = 14;
+
+const MIN_BG_LEN = 7;
+const MAX_BG_LEN = 8;
+const MIN_PG_LEN = 2;
+const MAX_PG_LEN = 8;
 
 /**
  * Validerar Personnummer och Samordningsnummer enligt SKV 704.
@@ -50,7 +61,6 @@ export function validatePersonnummer(ssn: string): ValidationResult {
     // Hantera Samordningsnummer
     if (day >= COORDINATION_NUMBER_DAY_OFFSET) {
         const adjustedDay = day - COORDINATION_NUMBER_DAY_OFFSET;
-        // Dag 0 (60) är giltig för okänt födelsedatum, annars 1-31
         if (adjustedDay < 0 || adjustedDay > MAX_DAY) {
             return { valid: false, error: 'Ogiltig dag för samordningsnummer' };
         }
@@ -76,9 +86,6 @@ export function validateOrgNumber(org: string): ValidationResult {
 
 export function validateVAT(vat: string): ValidationResult {
     const clean = vat.replace(/[^a-zA-Z0-9]/g, '');
-    const SWEDISH_VAT_PREFIX = 'SE';
-    const SWEDISH_VAT_SUFFIX = '01';
-    const VAT_LENGTH = 14;
 
     if (!clean.startsWith(SWEDISH_VAT_PREFIX) || !clean.endsWith(SWEDISH_VAT_SUFFIX)) {
         return { valid: false, error: `Måste börja med ${SWEDISH_VAT_PREFIX} och sluta med ${SWEDISH_VAT_SUFFIX}` };
@@ -91,16 +98,12 @@ export function validateVAT(vat: string): ValidationResult {
 
 export function validateBankgiro(bg: string): ValidationResult {
     const clean = bg.replace(/\D/g, '');
-    const MIN_BG_LEN = 7;
-    const MAX_BG_LEN = 8;
     if (clean.length < MIN_BG_LEN || clean.length > MAX_BG_LEN) return { valid: false, error: 'Felaktig längd' };
     return { valid: mod10(clean), error: mod10(clean) ? null : 'Felaktig kontrollsiffra' };
 }
 
 export function validatePlusgiro(pg: string): ValidationResult {
     const clean = pg.replace(/\D/g, '');
-    const MIN_PG_LEN = 2;
-    const MAX_PG_LEN = 8;
     if (clean.length < MIN_PG_LEN || clean.length > MAX_PG_LEN) return { valid: false, error: 'Felaktig längd' };
     return { valid: mod10(clean), error: mod10(clean) ? null : 'Felaktig kontrollsiffra' };
 }

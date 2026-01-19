@@ -5,10 +5,26 @@ import {
     validateOrgNumber, 
     validateVAT, 
     validateBankgiro, 
-    validatePlusgiro,
+    validatePlusgiro, 
     validateBankAccount,
     ValidationResult
 } from '../../../../lib/validators';
+
+type ValidatorFn = (value: string) => ValidationResult;
+
+const VALIDATORS: Record<string, ValidatorFn> = {
+    personnummer: validatePersonnummer,
+    ssn: validatePersonnummer,
+    samordningsnummer: validatePersonnummer,
+    organisation: validateOrgNumber,
+    org: validateOrgNumber,
+    vat: validateVAT,
+    moms: validateVAT,
+    bankgiro: validateBankgiro,
+    bg: validateBankgiro,
+    plusgiro: validatePlusgiro,
+    pg: validatePlusgiro
+};
 
 export async function GET(
     request: NextRequest,
@@ -18,69 +34,38 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const normalizedType = type.toLowerCase();
 
-    let result: ValidationResult;
-
     try {
-        switch (normalizedType) {
-            case 'personnummer':
-            case 'ssn':
-            case 'samordningsnummer': {
-                const id = searchParams.get('id') || searchParams.get('value');
-                if (!id) return missingParam('id');
-                result = validatePersonnummer(id);
-                break;
-            }
-            case 'organisation':
-            case 'org': {
-                const id = searchParams.get('id') || searchParams.get('value');
-                if (!id) return missingParam('id');
-                result = validateOrgNumber(id);
-                break;
-            }
-            case 'moms':
-            case 'vat': {
-                const id = searchParams.get('id') || searchParams.get('value');
-                if (!id) return missingParam('id');
-                result = validateVAT(id);
-                break;
-            }
-            case 'bankgiro':
-            case 'bg': {
-                const id = searchParams.get('id') || searchParams.get('value');
-                if (!id) return missingParam('id');
-                result = validateBankgiro(id);
-                break;
-            }
-            case 'plusgiro':
-            case 'pg': {
-                const id = searchParams.get('id') || searchParams.get('value');
-                if (!id) return missingParam('id');
-                result = validatePlusgiro(id);
-                break;
-            }
-            case 'bank-account':
-            case 'account': {
-                const clearing = searchParams.get('clearing');
-                const account = searchParams.get('account') || searchParams.get('number');
-                if (!clearing) return missingParam('clearing');
-                if (!account) return missingParam('account');
-                result = validateBankAccount(clearing, account);
-                break;
-            }
-            case 'adress':
-            case 'zip': {
-                const zip = searchParams.get('zip') || searchParams.get('value');
-                const city = searchParams.get('city');
-                if (!zip) return missingParam('zip');
-                result = await validateAddress(zip, city);
-                break;
-            }
-            default:
+        let result: ValidationResult;
+
+        // 1. Specialfall: Bankkonto (2 parametrar)
+        if (normalizedType === 'bank-account' || normalizedType === 'account') {
+            const clearing = searchParams.get('clearing');
+            const account = searchParams.get('account') || searchParams.get('number');
+            if (!clearing) return missingParam('clearing');
+            if (!account) return missingParam('account');
+            result = validateBankAccount(clearing, account);
+        } 
+        // 2. Specialfall: Adress (Async DB lookup)
+        else if (normalizedType === 'adress' || normalizedType === 'zip') {
+            const zip = searchParams.get('zip') || searchParams.get('value');
+            const city = searchParams.get('city');
+            if (!zip) return missingParam('zip');
+            result = await validateAddress(zip, city);
+        }
+        // 3. Standard-validatorer (Strategy Pattern)
+        else {
+            const validator = VALIDATORS[normalizedType];
+            if (!validator) {
                 return NextResponse.json({ 
                     error: `Unknown validation type: ${type}`,
                     code: 'INVALID_TYPE',
                     valid: false
                 }, { status: 404 });
+            }
+
+            const id = searchParams.get('id') || searchParams.get('value');
+            if (!id) return missingParam('id');
+            result = validator(id);
         }
 
         return NextResponse.json({
@@ -92,8 +77,7 @@ export async function GET(
         console.error('Validation Error:', error);
         return NextResponse.json({ 
             error: 'Internal Server Error', 
-            code: 'INTERNAL_ERROR',
-            message: (error as Error).message
+            code: 'INTERNAL_ERROR'
         }, { status: 500 });
     }
 }
