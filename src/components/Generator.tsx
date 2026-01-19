@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { Identity, Person, Company, BankAccount, Bankgiro, Plusgiro, OCR } from '../lib/data-provider';
@@ -14,7 +14,8 @@ export default function Generator({ type }: GeneratorProps) {
   const [data, setData] = useState<Identity | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    if (loading) return; 
     setLoading(true);
     try {
       const res = await fetch(`/api/generate?type=${type}`);
@@ -25,11 +26,11 @@ export default function Generator({ type }: GeneratorProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [type]); // 'loading' ska inte vara med här för att undvika stale closures eller loopar, vi kollar det internt
 
   useEffect(() => {
     fetchData();
-  }, [type]);
+  }, [fetchData]);
 
   const getTitle = () => {
     switch(type) {
