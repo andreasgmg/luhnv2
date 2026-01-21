@@ -3,7 +3,7 @@ import path from 'path';
 import { mod10 } from './bank-math';
 import { BANK_DATA } from './bank-data';
 import { getRandomElement } from './helpers';
-import { generateOCR, generateCarPlate, generateSwish, generateMobileNumber } from './generators';
+import { generateOCR, generateCarPlate, generateSwish, generateMobileNumber, generatePlusgiro } from './generators';
 import { ValidationResult } from './validators';
 
 // --- Interfaces ---
@@ -55,9 +55,9 @@ export interface OCR {
   type: 'ocr';
 }
 
-export interface CarPlate {
+export interface LicensePlate {
   plate: string;
-  type: 'car-plate';
+  type: 'license-plate';
 }
 
 export interface SwishNumber {
@@ -70,7 +70,7 @@ export interface MobileNumber {
   type: 'mobile';
 }
 
-export type Identity = Person | Company | BankAccount | Bankgiro | Plusgiro | OCR | CarPlate | SwishNumber | MobileNumber;
+export type Identity = Person | Company | BankAccount | Bankgiro | Plusgiro | OCR | LicensePlate | SwishNumber | MobileNumber;
 
 export interface NamesData {
   firstNames: { male: string[]; female: string[]; };
@@ -146,6 +146,9 @@ function getGender(ssn: string): 'male' | 'female' | 'unknown' {
 function getYearFromSSN(ssn: string): number {
     const clean = ssn.replace(/[^0-9]/g, '');
     let yearPart = 0; let monthPart = 0;
+    const OVERNUMMERSERIE_20 = 20;
+    const OVERNUMMERSERIE_40 = 40;
+    const OVERNUMMERSERIE_60 = 60;
     if (clean.length === 12) {
         yearPart = parseInt(clean.substring(0, 4), 10);
         monthPart = parseInt(clean.substring(4, 6), 10);
@@ -155,9 +158,9 @@ function getYearFromSSN(ssn: string): number {
         const currentYear = new Date().getFullYear() % 100;
         yearPart = yy > currentYear ? 1900 + yy : 2000 + yy;
     }
-    if (monthPart > 60) monthPart -= 60;
-    else if (monthPart > 40) monthPart -= 40;
-    else if (monthPart > 20) monthPart -= 20;
+    if (monthPart > OVERNUMMERSERIE_60) monthPart -= OVERNUMMERSERIE_60;
+    else if (monthPart > OVERNUMMERSERIE_40) monthPart -= OVERNUMMERSERIE_40;
+    else if (monthPart > OVERNUMMERSERIE_20) monthPart -= OVERNUMMERSERIE_20;
     return yearPart;
 }
 
@@ -179,8 +182,8 @@ export async function generateBankAccount(): Promise<Omit<BankAccount, 'type'>> 
 
 export async function validateAddress(zip: string, city: string | null = null): Promise<ValidationResult> {
     const locations = await loadData<LocationEntry[]>('locations', isLocationArray);
-    const cleanZip = zip.replace(/\s/g, ''); 
-    const matches = locations.filter(loc => loc.zip.replace(/\s/g, '') === cleanZip);
+    const cleanZip = zip.replace(/\s+/g, '');
+    const matches = locations.filter(loc => loc.zip.replace(/\s+/g, '') === cleanZip);
     if (matches.length === 0) return { valid: false, error: 'Postnumret hittades inte' };
     if (city && !matches.some(loc => loc.city.toLowerCase() === city.toLowerCase())) return { valid: false, error: `Postnumret tillhör inte ${city}`, suggestedCity: matches[0].city };
     return { valid: true, city: matches[0].city, zip: matches[0].zip };
@@ -191,7 +194,7 @@ export async function getOfficialIdentity(
   options: { gender?: string, minYear?: string, maxYear?: string, length?: number, lengthCheck?: boolean } = {}
 ): Promise<Identity | null> {
   const namesData = await loadData<NamesData>('names', isNamesData);
-  if (type === 'car-plate') return { plate: generateCarPlate(), type: 'car-plate' };
+  if (type === 'license-plate' || type === 'car-plate') return { plate: generateCarPlate(), type: 'license-plate' };
   if (type === 'swish') return { swish: generateSwish(), type: 'swish' };
   if (type === 'mobile') return { mobile: generateMobileNumber(), type: 'mobile' };
   if (type === 'company') {
@@ -203,10 +206,7 @@ export async function getOfficialIdentity(
       const bg = '998' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       return { bankgiro: `${bg}-${getLuhnDigit(bg)}`, bank: 'Bankgirot', type: 'bankgiro' };
   }
-  if (type === 'plusgiro') {
-      const pg = Math.floor(Math.random() * 1000000).toString();
-      return { plusgiro: `${pg}-${getLuhnDigit(pg)}`, bank: 'Plusgirot', type: 'plusgiro' };
-  }
+  if (type === 'plusgiro') return { plusgiro: generatePlusgiro(), bank: 'Plusgirot', type: 'plusgiro' };
   if (type === 'bank_account') return { ...(await generateBankAccount()), type: 'bank_account' };
   if (type === 'ocr') return { ocr: generateOCR(options.length || 10, options.lengthCheck || false), length: options.length || 10, type: 'ocr' };
 

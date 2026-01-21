@@ -21,7 +21,7 @@ const NAV_ITEMS: NavGroup[] = [
   { group: 'Identiteter', items: [
     { href: '/personnummer', id: 'personnummer', label: 'Personnummer', icon: User },
     { href: '/samordningsnummer', id: 'samordningsnummer', label: 'Samordningsnummer', icon: Briefcase },
-    { href: '/car-plate', id: 'car-plate', label: 'Registreringsskylt', icon: Car },
+    { href: '/license-plate', id: 'license-plate', label: 'Registreringsnr', icon: Car },
     { href: '/mobile', id: 'mobile', label: 'Mobilnummer', icon: Smartphone }
   ]},
   { group: 'Företag & Bank', items: [

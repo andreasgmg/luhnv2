@@ -8,7 +8,7 @@ export async function generateMetadata({ params }: { params: { type: string } })
     bankgiro: 'Validera Bankgiro',
     plusgiro: 'Validera Plusgiro',
     bankkonto: 'Validera Bankkonto',
-    adress: 'Validera Postnummer & Adress'
+    postnummer: 'Validera Postnummer & Adress'
   };
 
   return {

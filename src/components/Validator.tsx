@@ -20,12 +20,12 @@ const VALIDATOR_TABS = [
   { id: 'ssn', label: 'Personnummer', href: '/validator/personnummer' },
   { id: 'org', label: 'Organisation', href: '/validator/organisation' },
   { id: 'vat', label: 'Moms (VAT)', href: '/validator/moms' },
-  { id: 'zip', label: 'Adress', href: '/validator/adress' },
+  { id: 'zip', label: 'Postnummer', href: '/validator/postnummer' },
   { id: 'swish', label: 'Swish', href: '/validator/swish' },
   { id: 'bg', label: 'Bankgiro', href: '/validator/bankgiro' },
   { id: 'pg', label: 'Plusgiro', href: '/validator/plusgiro' },
   { id: 'account', label: 'Bankkonto', href: '/validator/bankkonto' },
-  { id: 'car-plate', label: 'Bilnummer', href: '/validator/car-plate' }
+  { id: 'license-plate', label: 'Registreringsnr', href: '/validator/license-plate' }
 ];
 
 export default function Validator() {
@@ -63,7 +63,7 @@ export default function Validator() {
             else if (activeType === 'bg') res = validateBankgiro(debouncedInput);
             else if (activeType === 'pg') res = validatePlusgiro(debouncedInput);
             else if (activeType === 'account') res = validateBankAccount(debouncedInput, debouncedInput2);
-            else if (activeType === 'car-plate') res = validateCarPlate(debouncedInput);
+            else if (activeType === 'license-plate') res = validateCarPlate(debouncedInput);
             else if (activeType === 'swish') res = validateSwish(debouncedInput);
         } catch (e) {
             res = { valid: false, error: 'Valideringsfel' };
@@ -74,6 +74,23 @@ export default function Validator() {
     };
     performVal();
   }, [activeType, debouncedInput, debouncedInput2]);
+
+  const getLabels = (type: string) => {
+      switch(type) {
+          case 'ssn': return { label: 'Personnummer', placeholder: 'ÅÅMMDD-XXXX' };
+          case 'org': return { label: 'Organisationsnummer', placeholder: '556XXX-XXXX' };
+          case 'vat': return { label: 'Momsnummer', placeholder: 'SE556XXXXXXXX01' };
+          case 'zip': return { label: 'Postnummer', placeholder: '111 22' };
+          case 'swish': return { label: 'Swish-nummer', placeholder: '123 XXX XXXX' };
+          case 'bg': return { label: 'Bankgiro', placeholder: '5XXX-XXXX' };
+          case 'pg': return { label: 'Plusgiro', placeholder: '28 65 43-4' };
+          case 'license-plate': return { label: 'Registreringsnummer', placeholder: 'ABC 123' };
+          case 'account': return { label: 'Kontonummer', placeholder: '' };
+          default: return { label: 'Nummer', placeholder: 'Nummer' };
+      }
+  };
+
+  const { label, placeholder } = getLabels(activeType);
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-left">
@@ -95,15 +112,17 @@ export default function Validator() {
                     </div>
                 ) : (
                     <div className="text-left">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{activeType === 'zip' ? 'Postnummer' : activeType === 'car-plate' ? 'Registreringsnummer' : 'Swish-nummer'}</label>
-                        <input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder={activeType === 'ssn' ? "ÅÅMMDD-XXXX" : activeType === 'zip' ? "111 22" : activeType === 'swish' ? "123 XXX XXXX" : "Nummer"} className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{label}</label>
+                        <input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder={placeholder} className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                     </div>
                 )}
                 <div className={`p-4 rounded-xl border flex items-center space-x-4 transition-colors ${loading ? 'bg-gray-50 border-gray-200 text-gray-500' : valResult?.valid ? 'bg-green-50 border-green-200 text-green-800' : !valInput && activeType !== 'account' ? 'bg-gray-50 border-gray-200 text-gray-500' : (!valInput || !valInput2) && activeType === 'account' ? 'bg-gray-50 border-gray-200 text-gray-500' : 'bg-red-50 border-red-200 text-red-800'}`}>
                     {loading ? <Loader2 size={20} className="animate-spin" /> : valResult?.valid ? <Check size={20} /> : <ShieldCheck size={20} />}
-                    <span className="font-medium text-base">{loading ? 'Validerar...' : !valResult && !valInput ? 'Ange ett nummer' : valResult?.valid ? 'Giltigt' : 'Ogiltigt'}</span>
+                    <span className="font-medium text-base">{loading ? 'Validerar...' : !valResult && !valInput ? `Ange ett ${label.toLowerCase()} för att validera` : valResult?.valid ? 'Giltigt' : 'Ogiltigt'}</span>
                     {valResult?.error && <span className="text-xs opacity-80">({valResult.error})</span>}
                     {valResult?.bankName && <span className="ml-auto font-bold bg-white/50 px-3 py-1 rounded-md text-xs border border-green-100">{valResult.bankName}</span>}
+                    {valResult?.city && <span className="ml-auto font-bold bg-white/50 px-3 py-1 rounded-md text-xs border border-green-100">{valResult.city}</span>}
+                    {valResult?.format && <span className="ml-auto font-bold bg-white/50 px-3 py-1 rounded-md text-xs border border-green-100">{valResult.format === 'old' ? 'Gammalt format (123)' : 'Nytt format (12D)'}</span>}
                 </div>
             </div>
         </div>

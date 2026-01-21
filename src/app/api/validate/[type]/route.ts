@@ -28,6 +28,7 @@ const VALIDATORS: Record<string, ValidatorFn> = {
     plusgiro: validatePlusgiro,
     pg: validatePlusgiro,
     'car-plate': validateCarPlate,
+    'license-plate': validateCarPlate,
     bilnummer: validateCarPlate,
     swish: validateSwish
 };

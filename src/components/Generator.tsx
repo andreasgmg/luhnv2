@@ -1,9 +1,9 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
-import { Identity, Person, Company, BankAccount, Bankgiro, Plusgiro, OCR, CarPlate, SwishNumber, MobileNumber } from '../lib/data-provider';
+import { Identity, Person, Company, BankAccount, Bankgiro, Plusgiro, OCR, LicensePlate, SwishNumber, MobileNumber } from '../lib/data-provider';
 import CodeBlock from './ui/CodeBlock';
 import DotGridBackground from './ui/DotGridBackground';
 import { Download, FileJson, FileSpreadsheet, FileCode, Filter, X } from 'lucide-react';
@@ -12,9 +12,14 @@ interface GeneratorProps {
   type: string;
 }
 
+// Fetcher function for SWR with better error handling
 const fetcher = async (url: string) => {
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Kunde inte hämta data');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    // Throw an error with the server message if available
+    throw new Error(errorData.error || errorData.message || 'Kunde inte hämta data');
+  }
   return res.json();
 };
 
@@ -44,8 +49,8 @@ export default function Generator({ type }: GeneratorProps) {
         if (gender !== 'any') params.set('gender', gender);
         
         const currentYear = new Date().getFullYear();
-        if (minAge) params.set('maxYear', (currentYear - parseInt(minAge)).toString()); // Min ålder = Max födelseår
-        if (maxAge) params.set('minYear', (currentYear - parseInt(maxAge)).toString()); // Max ålder = Min födelseår
+        if (minAge) params.set('maxYear', (currentYear - parseInt(minAge)).toString());
+        if (maxAge) params.set('minYear', (currentYear - parseInt(maxAge)).toString());
     }
 
     return params.toString();
@@ -58,7 +63,10 @@ export default function Generator({ type }: GeneratorProps) {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       shouldRetryOnError: false,
-      onError: () => toast.error("Kunde inte generera data")
+      onError: (err) => {
+          // Show the actual error message from the server (e.g. "Too many requests")
+          toast.error(err.message || "Kunde inte generera data");
+      }
     }
   );
 
@@ -97,7 +105,7 @@ export default function Generator({ type }: GeneratorProps) {
       case 'plusgiro': return 'Generera giltiga svenska plusgironummer för test av äldre betalsystem.';
       case 'bank_account': return 'Generera kontonummer som passerar bankernas validering. Vi stöder korrekta clearing-serier för SEB, Swedbank, Nordea, Handelsbanken m.fl.';
       case 'ocr': return 'Testa OCR-validering i dina betalflöden. Vi skapar giltiga referensnummer med Luhn-kontroll och valfri längdcheck (hård/mjuk kontroll).';
-      case 'car-plate': return 'Generera giltiga svenska registreringsnummer enligt Transportstyrelsens format (både gamla och nya). Exkluderar förbjudna kombinationer.';
+      case 'car-plate': return 'Generera giltiga svenska registreringsnummer (MLB-serien) för säker testning. Stödjer både gammalt (123) och nytt (12D) format.';
       case 'swish': return 'Testa betalflöden med giltiga 123-nummer för företag och föreningar.';
       case 'mobile': return 'Generera säkra mobilnummer från PTS reserverade testserie (070-174xxxx).';
       default: return 'Generera giltig, verifierbar testdata för svenska system.';
@@ -272,7 +280,7 @@ export default function Generator({ type }: GeneratorProps) {
                         </div>
                         ) : type === 'car-plate' ? (
                         <div className="grid gap-6 md:grid-cols-2">
-                            <div className="space-y-6"><CodeBlock label="Registreringsnummer" value={(data as CarPlate)?.plate} /></div>
+                            <div className="space-y-6"><CodeBlock label="Registreringsnummer" value={(data as LicensePlate)?.plate} /></div>
                         </div>
                         ) : type === 'swish' ? (
                         <div className="grid gap-6 md:grid-cols-2">
@@ -302,7 +310,7 @@ export default function Generator({ type }: GeneratorProps) {
                     </div>
                     <div className="p-6 overflow-x-auto">
                         <pre className="font-mono text-sm text-slate-300 leading-relaxed">
-                            {data ? JSON.stringify(data, null, 2) : error ? 'Error fetching data' : 'Loading...'}
+                            {data ? JSON.stringify(data, null, 2) : error ? error.message : 'Loading...'}
                         </pre>
                     </div>
                 </div>

@@ -19,14 +19,24 @@ export default function ApiDocs() {
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
             <Server size={20} className="mr-2" />Generering
         </h3>
-        <EndpointExample method="GET" url="/api/generate?type=personnummer" desc="Generera en slumpmässig syntetisk person med ett giltigt Personnummer." />
-        <EndpointExample method="GET" url="/api/generate?type=company" desc="Generera ett slumpmässigt företag med giltigt Organisationsnummer och Momsnummer." />
-        <EndpointExample method="GET" url="/api/generate?type=car-plate" desc="Generera ett giltigt registreringsnummer (bilnummer)." />
-        <EndpointExample method="GET" url="/api/generate?type=personnummer&count=5" desc="Batch-generering: Hämta 5 personnummer i en lista." />
-        <EndpointExample method="GET" url="/api/generate?type=personnummer&minYear=1990&maxYear=2000" desc="Filtrera: Hämta personnummer för personer födda mellan 1990 och 2000." />
         
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm text-left">
-            <strong>Typer:</strong> <code>personnummer</code>, <code>samordningsnummer</code>, <code>company</code>, <code>bankgiro</code>, <code>bank_account</code>, <code>ocr</code>, <code>plusgiro</code>, <code>car-plate</code>, <code>swish</code>, <code>mobile</code>.
+        <div className="space-y-4">
+            <EndpointExample method="GET" url="/api/generate?type=personnummer" desc="Generera en slumpmässig syntetisk person med ett giltigt Personnummer." />
+            <EndpointExample method="GET" url="/api/generate?type=samordningsnummer" desc="Generera ett samordningsnummer (Dag + 60) för test av utländska medborgare." />
+            <EndpointExample method="GET" url="/api/generate?type=company" desc="Generera ett slumpmässigt företag med giltigt Organisationsnummer och Momsnummer." />
+            <EndpointExample method="GET" url="/api/generate?type=bankgiro" desc="Generera ett giltigt Bankgiro från testserien (998-xxxx)." />
+            <EndpointExample method="GET" url="/api/generate?type=plusgiro" desc="Generera ett giltigt Plusgiro-nummer." />
+            <EndpointExample method="GET" url="/api/generate?type=bank_account" desc="Generera ett giltigt bankkonto med clearingnummer (för slumpvald bank)." />
+            <EndpointExample method="GET" url="/api/generate?type=ocr" desc="Generera ett OCR-referensnummer med Luhn-kontroll." />
+            <EndpointExample method="GET" url="/api/generate?type=car-plate" desc="Generera ett giltigt registreringsnummer (MLB-serien)." />
+            <EndpointExample method="GET" url="/api/generate?type=swish" desc="Generera ett giltigt Swish-nummer för företag (123-serien)." />
+            <EndpointExample method="GET" url="/api/generate?type=mobile" desc="Generera ett säkert mobilnummer för test (PTS-serien)." />
+        </div>
+
+        <h4 className="text-md font-bold text-gray-900 mt-8 mb-2">Avancerad Generering</h4>
+        <div className="space-y-4">
+            <EndpointExample method="GET" url="/api/generate?type=personnummer&count=5" desc="Batch-generering: Hämta 5 personnummer i en lista." />
+            <EndpointExample method="GET" url="/api/generate?type=personnummer&minYear=1990&maxYear=2000&gender=female" desc="Filtrera: Kvinna född 1990-2000." />
         </div>
         
         <hr className="my-8 border-gray-100"/>
@@ -34,10 +44,16 @@ export default function ApiDocs() {
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
             <ShieldCheck size={20} className="mr-2" />Validering
         </h3>
-        <p className="text-sm text-gray-500 mb-4">Använd våra RESTful endpoints för att validera data.</p>
-        <EndpointExample method="GET" url="/api/validate/personnummer?id=199001011234" desc="Validera ett Personnummer (Längd, Luhn, Datum)." />
-        <EndpointExample method="GET" url="/api/validate/bank-account?clearing=8105&account=123456789" desc="Validera ett Bankkonto (Clearing + Kontonummer)." />
-        <EndpointExample method="GET" url="/api/validate/car-plate?id=ABC123" desc="Validera ett Registreringsnummer (Gammalt eller nytt format)." />
+        <p className="text-sm text-gray-500 mb-4">Använd våra RESTful endpoints för att validera data och få detaljerad info.</p>
+        
+        <div className="space-y-4">
+            <EndpointExample method="GET" url="/api/validate/personnummer?id=199001011234" desc="Validera ett Personnummer (Längd, Luhn, Datum)." />
+            <EndpointExample method="GET" url="/api/validate/organisation?id=556000-4615" desc="Validera ett Organisationsnummer." />
+            <EndpointExample method="GET" url="/api/validate/bank-account?clearing=8105&account=123456789" desc="Validera ett Bankkonto mot bankens regler." />
+            <EndpointExample method="GET" url="/api/validate/postnummer?zip=11122&city=Stockholm" desc="Validera att ett postnummer finns och (valfritt) matchar en ort." />
+            <EndpointExample method="GET" url="/api/validate/car-plate?id=MLB123" desc="Validera ett Registreringsnummer." />
+            <EndpointExample method="GET" url="/api/validate/swish?id=1231234567" desc="Validera ett Swish-nummer." />
+        </div>
       </div>
     </div>
   );
