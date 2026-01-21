@@ -16,7 +16,8 @@ Sveriges mest kompletta verktyg för att generera och validera testdata. Byggt f
 *   ✅ **Organisationsnummer:** Skapa bolagsprofiler med korrekta org.nummer och VAT.
 *   ✅ **Bankgiro & Plusgiro:** Generera säkra nummer (998-serien) för betalningstester.
 *   ✅ **Bankkonton:** Validera clearingnummer och kontonummer mot Bankföreningens regelverk (Swedbank, SEB, Nordea, etc.).
-*   ✅ **OCR:** Generera referensnummer med längd- och checksummekontroll.
+*   ✅ **Swish:** Generera och validera 123-nummer för företag.
+*   ✅ **Bilnummer:** Registreringsskyltar (MLB-serien) i både gammalt och nytt format.
 *   ✅ **API:** Öppet REST-API med CORS-stöd för integration i testmiljöer.
 
 ## 🛠 API Quick Start
@@ -28,33 +29,9 @@ Inga API-nycklar. Ingen autentisering. Bara anropa.
 curl "https://luhn.se/api/generate?type=personnummer"
 ```
 
-**Response:**
-```json
-{
-  "ssn": "19900505-1234",
-  "firstName": "Lars",
-  "lastName": "Svensson",
-  "gender": "male",
-  "type": "person",
-  "address": {
-    "street": "Storgatan 12",
-    "zip": "111 22",
-    "city": "Stockholm"
-  }
-}
-```
-
 ### Validera Bankkonto
 ```bash
-curl "https://luhn.se/api/validate?type=account&value=8105&value2=993422324"
-```
-
-**Response:**
-```json
-{
-  "valid": true,
-  "bankName": "Swedbank"
-}
+curl "https://luhn.se/api/validate/bank-account?clearing=8105&account=993422324"
 ```
 
 ## 📦 Kör lokalt (Docker)
@@ -66,7 +43,18 @@ docker build -t luhn .
 docker run -p 3000:3000 luhn
 ```
 
-Öppna `http://localhost:3000` i din webbläsare.
+### Produktion & Loggning (GDPR)
+För att säkerställa att loggar inte sparas för evigt (GDPR "Rätten att bli glömd" / Storage Limitation), rekommenderas att köra containern med log-rotation:
+
+```bash
+docker run -d \
+  --name luhn \
+  -p 3000:3000 \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
+  luhn
+```
+Detta begränsar loggarna till maximalt 3 filer à 10MB, vilket säkerställer att gammal data roteras bort automatiskt.
 
 ## 💻 Utveckling
 
@@ -89,8 +77,7 @@ All data som genereras är **100% syntetisk**.
 *   Namn och adresser slumpas fram från SCB:s topplistor och postnummerregister.
 *   Personnummer är matematiskt giltiga men tillhör inte nödvändigtvis en levande person.
 *   Bankgironummer hämtas från test-serier (998-xxxx).
-
-Tjänsten är **stateless** och sparar ingen data om anropen.
+*   Loggar innehåller inga personuppgifter från genererad data, och IP-adresser lagras endast temporärt i minnet för rate-limiting.
 
 ## 📄 Licens
 

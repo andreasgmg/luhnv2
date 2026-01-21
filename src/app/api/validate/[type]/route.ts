@@ -87,7 +87,7 @@ export async function GET(
 
     } catch (error) {
         logger.error('Validation API Error', error, { 
-            url: request.url, 
+            path: request.nextUrl.pathname, // Endast path, inga query params med PII
             type: params.type 
         });
         return NextResponse.json({ 

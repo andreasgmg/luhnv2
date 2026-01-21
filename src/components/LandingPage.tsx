@@ -49,15 +49,15 @@ export default function LandingPage() {
         <div className="mt-12 grid md:grid-cols-3 gap-8 text-center p-8 bg-gray-50 rounded-2xl border border-gray-100">
           <div className="p-2">
             <h3 className="text-lg font-bold text-gray-900 mb-2">100% Stateless</h3>
-            <p className="text-sm text-gray-500">Vi sparar ingen data.</p>
+            <p className="text-sm text-gray-500">Vi sparar ingen data om dina genereringar. Ingen databas, ingen historik.</p>
           </div>
           <div className="p-2">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">GDPR-säker</h3>
-            <p className="text-sm text-gray-500">All data är syntetisk.</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">GDPR & Integritet</h3>
+            <p className="text-sm text-gray-500">All testdata är syntetisk. Vi loggar din IP tillfälligt för rate-limiting (säkerhet), men den raderas automatiskt.</p>
           </div>
           <div className="p-2">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Öppen Källkod</h3>
-            <p className="text-sm text-gray-500">Granska koden på GitHub.</p>
+            <p className="text-sm text-gray-500">Granska koden på GitHub. Kör tjänsten lokalt med Docker för maximal kontroll.</p>
           </div>
         </div>
       </div>
