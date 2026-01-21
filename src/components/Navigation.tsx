@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { 
   Menu, X, Terminal, Briefcase, User, Building2, 
   CreditCard, ShieldCheck, Wallet, Code2, Home, 
-  Heart, ScanLine, LucideIcon, Car, Smartphone, Shield
+  Heart, ScanLine, LucideIcon, Car, Smartphone
 } from 'lucide-react';
 import NavItem from './ui/NavItem';
 
@@ -16,8 +16,7 @@ interface NavGroup {
 
 const NAV_ITEMS: NavGroup[] = [
   { group: 'Start', items: [
-    { href: '/', id: 'home', label: 'Översikt', icon: Home },
-    { href: '/privacy', id: 'privacy', label: 'Integritet', icon: Shield }
+    { href: '/', id: 'home', label: 'Översikt', icon: Home }
   ]},
   { group: 'Identiteter', items: [
     { href: '/personnummer', id: 'personnummer', label: 'Personnummer', icon: User },
