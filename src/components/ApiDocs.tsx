@@ -21,11 +21,12 @@ export default function ApiDocs() {
         </h3>
         <EndpointExample method="GET" url="/api/generate?type=personnummer" desc="Generera en slumpmässig syntetisk person med ett giltigt Personnummer." />
         <EndpointExample method="GET" url="/api/generate?type=company" desc="Generera ett slumpmässigt företag med giltigt Organisationsnummer och Momsnummer." />
+        <EndpointExample method="GET" url="/api/generate?type=car-plate" desc="Generera ett giltigt registreringsnummer (bilnummer)." />
         <EndpointExample method="GET" url="/api/generate?type=personnummer&count=5" desc="Batch-generering: Hämta 5 personnummer i en lista." />
         <EndpointExample method="GET" url="/api/generate?type=personnummer&minYear=1990&maxYear=2000" desc="Filtrera: Hämta personnummer för personer födda mellan 1990 och 2000." />
         
         <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm text-left">
-            <strong>Typer:</strong> <code>personnummer</code>, <code>samordningsnummer</code>, <code>company</code>, <code>bankgiro</code>, <code>bank_account</code>, <code>ocr</code>, <code>plusgiro</code>.
+            <strong>Typer:</strong> <code>personnummer</code>, <code>samordningsnummer</code>, <code>company</code>, <code>bankgiro</code>, <code>bank_account</code>, <code>ocr</code>, <code>plusgiro</code>, <code>car-plate</code>, <code>swish</code>, <code>mobile</code>.
         </div>
         
         <hr className="my-8 border-gray-100"/>
@@ -36,6 +37,7 @@ export default function ApiDocs() {
         <p className="text-sm text-gray-500 mb-4">Använd våra RESTful endpoints för att validera data.</p>
         <EndpointExample method="GET" url="/api/validate/personnummer?id=199001011234" desc="Validera ett Personnummer (Längd, Luhn, Datum)." />
         <EndpointExample method="GET" url="/api/validate/bank-account?clearing=8105&account=123456789" desc="Validera ett Bankkonto (Clearing + Kontonummer)." />
+        <EndpointExample method="GET" url="/api/validate/car-plate?id=ABC123" desc="Validera ett Registreringsnummer (Gammalt eller nytt format)." />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAddress } from '../../../../lib/data-provider';
+import { logger } from '../../../../lib/logger';
 import { 
     validatePersonnummer, 
     validateOrgNumber, 
@@ -7,6 +8,8 @@ import {
     validateBankgiro, 
     validatePlusgiro, 
     validateBankAccount,
+    validateCarPlate,
+    validateSwish,
     ValidationResult
 } from '../../../../lib/validators';
 
@@ -23,7 +26,10 @@ const VALIDATORS: Record<string, ValidatorFn> = {
     bankgiro: validateBankgiro,
     bg: validateBankgiro,
     plusgiro: validatePlusgiro,
-    pg: validatePlusgiro
+    pg: validatePlusgiro,
+    'car-plate': validateCarPlate,
+    bilnummer: validateCarPlate,
+    swish: validateSwish
 };
 
 export async function GET(
@@ -68,13 +74,22 @@ export async function GET(
             result = validator(id);
         }
 
+        // Return result with caching headers for deterministic validation
         return NextResponse.json({
             ...result,
             timestamp: new Date().toISOString()
+        }, {
+            headers: {
+                'Cache-Control': 'public, max-age=86400, immutable', // Cache for 24 hours
+                'Access-Control-Allow-Origin': '*'
+            }
         });
 
     } catch (error) {
-        console.error('Validation Error:', error);
+        logger.error('Validation API Error', error, { 
+            url: request.url, 
+            type: params.type 
+        });
         return NextResponse.json({ 
             error: 'Internal Server Error', 
             code: 'INTERNAL_ERROR'

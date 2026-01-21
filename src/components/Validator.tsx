@@ -11,6 +11,8 @@ import {
     validateBankgiro, 
     validatePlusgiro,
     validateBankAccount,
+    validateCarPlate,
+    validateSwish,
     ValidationResult
 } from '../lib/validators';
 
@@ -19,9 +21,11 @@ const VALIDATOR_TABS = [
   { id: 'org', label: 'Organisation', href: '/validator/organisation' },
   { id: 'vat', label: 'Moms (VAT)', href: '/validator/moms' },
   { id: 'zip', label: 'Adress', href: '/validator/adress' },
+  { id: 'swish', label: 'Swish', href: '/validator/swish' },
   { id: 'bg', label: 'Bankgiro', href: '/validator/bankgiro' },
   { id: 'pg', label: 'Plusgiro', href: '/validator/plusgiro' },
-  { id: 'account', label: 'Bankkonto', href: '/validator/bankkonto' }
+  { id: 'account', label: 'Bankkonto', href: '/validator/bankkonto' },
+  { id: 'car-plate', label: 'Bilnummer', href: '/validator/car-plate' }
 ];
 
 export default function Validator() {
@@ -31,10 +35,7 @@ export default function Validator() {
   const [valResult, setValResult] = useState<ValidationResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Determine active type based on URL
   const activeType = VALIDATOR_TABS.find(t => pathname.includes(t.href))?.id || 'ssn';
-
-  // Debounce inputs to prevent flashing/spamming
   const debouncedInput = useDebounce(valInput, 300);
   const debouncedInput2 = useDebounce(valInput2, 300);
 
@@ -53,23 +54,17 @@ export default function Validator() {
         let res: ValidationResult = { valid: false };
         
         try {
-            // Client-side validation for everything except ZIP (which needs DB lookup)
             if (activeType === 'zip') {
                 const apiRes = await fetch(`/api/validate/zip?zip=${debouncedInput}`);
                 res = await apiRes.json();
-            } else if (activeType === 'ssn') {
-                res = validatePersonnummer(debouncedInput);
-            } else if (activeType === 'org') {
-                res = validateOrgNumber(debouncedInput);
-            } else if (activeType === 'vat') {
-                res = validateVAT(debouncedInput);
-            } else if (activeType === 'bg') {
-                res = validateBankgiro(debouncedInput);
-            } else if (activeType === 'pg') {
-                res = validatePlusgiro(debouncedInput);
-            } else if (activeType === 'account') {
-                res = validateBankAccount(debouncedInput, debouncedInput2);
-            }
+            } else if (activeType === 'ssn') res = validatePersonnummer(debouncedInput);
+            else if (activeType === 'org') res = validateOrgNumber(debouncedInput);
+            else if (activeType === 'vat') res = validateVAT(debouncedInput);
+            else if (activeType === 'bg') res = validateBankgiro(debouncedInput);
+            else if (activeType === 'pg') res = validatePlusgiro(debouncedInput);
+            else if (activeType === 'account') res = validateBankAccount(debouncedInput, debouncedInput2);
+            else if (activeType === 'car-plate') res = validateCarPlate(debouncedInput);
+            else if (activeType === 'swish') res = validateSwish(debouncedInput);
         } catch (e) {
             res = { valid: false, error: 'Valideringsfel' };
         } finally {
@@ -77,7 +72,6 @@ export default function Validator() {
             setLoading(false);
         }
     };
-    
     performVal();
   }, [activeType, debouncedInput, debouncedInput2]);
 
@@ -90,43 +84,26 @@ export default function Validator() {
         <div className="p-6">
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl mb-8 overflow-x-auto">
                 {VALIDATOR_TABS.map(t => (
-                    <Link 
-                        key={t.id} 
-                        href={t.href} 
-                        className={`flex-1 flex items-center justify-center py-2 px-3 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${activeType === t.id ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        {t.label}
-                    </Link>
+                    <Link key={t.id} href={t.href} className={`flex-1 flex items-center justify-center py-2 px-3 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${activeType === t.id ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{t.label}</Link>
                 ))}
             </div>
             <div className="space-y-6">
                 {activeType === 'account' ? (
                     <div className="grid grid-cols-2 gap-4 text-left">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Clearingnummer</label>
-                            <input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder="8105" className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Kontonummer</label>
-                            <input type="text" value={valInput2} onChange={(e) => setValInput2(e.target.value)} placeholder="993422324" className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                        </div>
+                        <div><label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Clearingnummer</label><input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder="8105" className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
+                        <div><label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Kontonummer</label><input type="text" value={valInput2} onChange={(e) => setValInput2(e.target.value)} placeholder="993422324" className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
                     </div>
                 ) : (
                     <div className="text-left">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{activeType === 'zip' ? 'Postnummer' : 'Nummer'}</label>
-                        <input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder={activeType === 'ssn' ? "ÅÅMMDD-XXXX" : activeType === 'zip' ? "111 22" : "Nummer"} className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{activeType === 'zip' ? 'Postnummer' : activeType === 'car-plate' ? 'Registreringsnummer' : 'Swish-nummer'}</label>
+                        <input type="text" value={valInput} onChange={(e) => setValInput(e.target.value)} placeholder={activeType === 'ssn' ? "ÅÅMMDD-XXXX" : activeType === 'zip' ? "111 22" : activeType === 'swish' ? "123 XXX XXXX" : "Nummer"} className="w-full text-xl font-mono p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                     </div>
                 )}
                 <div className={`p-4 rounded-xl border flex items-center space-x-4 transition-colors ${loading ? 'bg-gray-50 border-gray-200 text-gray-500' : valResult?.valid ? 'bg-green-50 border-green-200 text-green-800' : !valInput && activeType !== 'account' ? 'bg-gray-50 border-gray-200 text-gray-500' : (!valInput || !valInput2) && activeType === 'account' ? 'bg-gray-50 border-gray-200 text-gray-500' : 'bg-red-50 border-red-200 text-red-800'}`}>
                     {loading ? <Loader2 size={20} className="animate-spin" /> : valResult?.valid ? <Check size={20} /> : <ShieldCheck size={20} />}
-                    <span className="font-medium text-base">
-                        {loading ? 'Validerar...' : 
-                         !valResult && !valInput ? 'Ange ett nummer för att validera' : 
-                         valResult?.valid ? 'Giltigt' : 'Ogiltigt'}
-                    </span>
+                    <span className="font-medium text-base">{loading ? 'Validerar...' : !valResult && !valInput ? 'Ange ett nummer' : valResult?.valid ? 'Giltigt' : 'Ogiltigt'}</span>
                     {valResult?.error && <span className="text-xs opacity-80">({valResult.error})</span>}
                     {valResult?.bankName && <span className="ml-auto font-bold bg-white/50 px-3 py-1 rounded-md text-xs border border-green-100">{valResult.bankName}</span>}
-                    {valResult?.city && <span className="ml-auto font-bold bg-white/50 px-3 py-1 rounded-md text-xs border border-green-100">{valResult.city}</span>}
                 </div>
             </div>
         </div>

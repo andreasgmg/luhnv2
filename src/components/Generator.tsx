@@ -1,9 +1,9 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
-import { Identity, Person, Company, BankAccount, Bankgiro, Plusgiro, OCR } from '../lib/data-provider';
+import { Identity, Person, Company, BankAccount, Bankgiro, Plusgiro, OCR, CarPlate, SwishNumber, MobileNumber } from '../lib/data-provider';
 import CodeBlock from './ui/CodeBlock';
 import DotGridBackground from './ui/DotGridBackground';
 
@@ -21,8 +21,6 @@ const fetcher = async (url: string) => {
 };
 
 export default function Generator({ type }: GeneratorProps) {
-  // useSWR handles loading, error, and caching automatically
-  // We use revalidateOnFocus: false because this is random static data
   const { data, error, isLoading, mutate } = useSWR<Identity>(
     `/api/generate?type=${type}`, 
     fetcher,
@@ -35,7 +33,6 @@ export default function Generator({ type }: GeneratorProps) {
   );
 
   const handleGenerate = () => {
-    // mutate() triggers a re-fetch and updates the cache
     mutate(); 
   };
 
@@ -48,6 +45,7 @@ export default function Generator({ type }: GeneratorProps) {
       case 'plusgiro': return 'Plusgiro';
       case 'bank_account': return 'Bankkonto';
       case 'ocr': return 'OCR-nummer';
+      case 'car-plate': return 'Registreringsskylt';
       default: return 'Generera';
     }
   };
@@ -61,6 +59,7 @@ export default function Generator({ type }: GeneratorProps) {
       case 'plusgiro': return 'Generera giltiga svenska plusgironummer för test av äldre betalsystem.';
       case 'bank_account': return 'Generera kontonummer som passerar bankernas validering. Vi stöder korrekta clearing-serier för SEB, Swedbank, Nordea, Handelsbanken m.fl.';
       case 'ocr': return 'Testa OCR-validering i dina betalflöden. Vi skapar giltiga referensnummer med Luhn-kontroll och valfri längdcheck (hård/mjuk kontroll).';
+      case 'car-plate': return 'Generera giltiga svenska registreringsnummer enligt Transportstyrelsens format (både gamla och nya). Exkluderar förbjudna kombinationer.';
       default: return 'Generera giltig, verifierbar testdata för svenska system.';
     }
   };
@@ -133,6 +132,18 @@ export default function Generator({ type }: GeneratorProps) {
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-6"><CodeBlock label="OCR-nummer" value={(data as OCR)?.ocr} /></div>
                         <div className="space-y-6"><CodeBlock label="Längd" value={(data as OCR)?.length} /></div>
+                    </div>
+                    ) : type === 'car-plate' ? (
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-6"><CodeBlock label="Registreringsnummer" value={(data as CarPlate)?.plate} /></div>
+                    </div>
+                    ) : type === 'swish' ? (
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-6"><CodeBlock label="Swish-nummer" value={(data as SwishNumber)?.swish} /></div>
+                    </div>
+                    ) : type === 'mobile' ? (
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-6"><CodeBlock label="Mobilnummer (Test)" value={(data as MobileNumber)?.mobile} /></div>
                     </div>
                     ) : (
                     <div className="grid gap-6 md:grid-cols-2">

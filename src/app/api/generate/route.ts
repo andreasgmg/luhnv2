@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOfficialIdentity } from '../../../lib/data-provider';
+import { logger } from '../../../lib/logger';
 
 // Helper för XML-escaping
 function escapeXML(val: any): string {
@@ -84,6 +85,9 @@ export async function GET(request: NextRequest) {
             else if (type === 'bankgiro' || type === 'plusgiro') header = 'bankgiro,bank\n';
             else if (type === 'ocr') header = 'ocr,length,lengthCheck\n';
             else if (type === 'bank_account') header = 'bank,clearing,account\n';
+            else if (type === 'car-plate') header = 'plate\n';
+            else if (type === 'swish') header = 'swish\n';
+            else if (type === 'mobile') header = 'mobile\n';
             else header = 'ssn,firstName,lastName,gender,street,zip,city\n';
             controller.enqueue(encoder.encode(header));
           }
@@ -110,6 +114,12 @@ export async function GET(request: NextRequest) {
                 chunk = `${escapeCSV(id.bank)},${id.clearing},${id.account}\n`;
               } else if (type === 'ocr') {
                 chunk = `${id.ocr},${id.length},${id.lengthCheck}\n`;
+              } else if (type === 'car-plate') {
+                chunk = `${id.plate}\n`;
+              } else if (type === 'swish') {
+                chunk = `${id.swish}\n`;
+              } else if (type === 'mobile') {
+                chunk = `${id.mobile}\n`;
               } else {
                 chunk = `${id.ssn},${escapeCSV(id.firstName)},${escapeCSV(id.lastName)},${id.gender},${escapeCSV(id.address.street)},${id.address.zip},${escapeCSV(id.address.city)}\n`;
               }
@@ -131,7 +141,7 @@ export async function GET(request: NextRequest) {
           
           controller.close();
         } catch (err) {
-          console.error('Streaming Error:', err);
+          logger.error('Streaming Error', err);
           controller.error(err);
         }
       },
@@ -153,10 +163,10 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Generate API Error:', error);
-    return NextResponse.json({ 
-        error: 'Failed to initialize data generation', 
-        code: 'GENERATE_INIT_ERROR' 
+    logger.error('Generate API Error', error);
+    return NextResponse.json({
+        error: 'Failed to initialize data generation',
+        code: 'GENERATE_INIT_ERROR'
     }, { status: 500 });
   }
 }

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { 
   Menu, X, Terminal, Briefcase, User, Building2, 
   CreditCard, ShieldCheck, Wallet, Code2, Home, 
-  Heart, ScanLine, LucideIcon
+  Heart, ScanLine, LucideIcon, Car, Smartphone
 } from 'lucide-react';
 import NavItem from './ui/NavItem';
 
@@ -18,10 +18,13 @@ const NAV_ITEMS: NavGroup[] = [
   { group: 'Start', items: [{ href: '/', id: 'home', label: 'Översikt', icon: Home }] },
   { group: 'Identiteter', items: [
     { href: '/personnummer', id: 'personnummer', label: 'Personnummer', icon: User },
-    { href: '/samordningsnummer', id: 'samordningsnummer', label: 'Samordningsnummer', icon: Briefcase }
+    { href: '/samordningsnummer', id: 'samordningsnummer', label: 'Samordningsnummer', icon: Briefcase },
+    { href: '/car-plate', id: 'car-plate', label: 'Registreringsskylt', icon: Car },
+    { href: '/mobile', id: 'mobile', label: 'Mobilnummer', icon: Smartphone }
   ]},
   { group: 'Företag & Bank', items: [
     { href: '/organisation', id: 'company', label: 'Organisationsnr', icon: Building2 },
+    { href: '/swish', id: 'swish', label: 'Swish-nummer', icon: Smartphone },
     { href: '/bankgiro', id: 'bankgiro', label: 'Bankgiro', icon: CreditCard },
     { href: '/plusgiro', id: 'plusgiro', label: 'Plusgiro', icon: CreditCard },
     { href: '/bank-account', id: 'bank_account', label: 'Bankkonto', icon: Wallet },
@@ -35,8 +38,6 @@ export default function Navigation() {
   const pathname = usePathname() || '/';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Helper to determine active state
-  // We check if the pathname starts with the href, but handle the root '/' specially
   const isActive = (href: string) => {
       if (href === '/') return pathname === '/';
       return pathname.startsWith(href);
@@ -44,7 +45,6 @@ export default function Navigation() {
 
   return (
     <>
-      {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 w-full bg-white border-b border-gray-200 z-50 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2 font-bold text-gray-900">
           <Terminal size={20} className="text-blue-600" />
@@ -55,7 +55,6 @@ export default function Navigation() {
         </button>
       </div>
 
-      {/* Sidebar */}
       <div className={`
         fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 
         transform transition-transform duration-200 ease-in-out lg:translate-x-0 
