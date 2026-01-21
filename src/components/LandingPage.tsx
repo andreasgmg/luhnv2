@@ -19,8 +19,11 @@ export default function LandingPage() {
                 Svensk testdata <br/>
                 <span className="text-slate-500 font-medium">för utvecklare.</span>
                 </h1>
-                <p className="text-lg text-slate-600 mb-8 leading-relaxed font-light">
+                <p className="text-lg text-slate-600 mb-4 leading-relaxed font-light">
                 Automatisera dina testflöden. Generera matematiskt korrekta personnummer, bankgiron och organisationsnummer programmatiskt. Gratis, öppet och helt stateless.
+                </p>
+                <p className="text-xs text-red-500/80 mb-8 font-medium italic">
+                ⚠️ Tjänsten är endast till för testdata. Använd aldrig riktiga personuppgifter.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-3 sm:space-y-0 sm:space-x-4">
                     <Link href="/api-docs" className="w-full sm:w-auto px-6 py-3 bg-black text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-all flex items-center justify-center">

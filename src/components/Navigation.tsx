@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { 
   Menu, X, Terminal, Briefcase, User, Building2, 
   CreditCard, ShieldCheck, Wallet, Code2, Home, 
-  Heart, ScanLine, LucideIcon, Car, Smartphone
+  Heart, ScanLine, LucideIcon, Car, Smartphone, Shield
 } from 'lucide-react';
 import NavItem from './ui/NavItem';
 
@@ -15,7 +15,10 @@ interface NavGroup {
 }
 
 const NAV_ITEMS: NavGroup[] = [
-  { group: 'Start', items: [{ href: '/', id: 'home', label: 'Översikt', icon: Home }] },
+  { group: 'Start', items: [
+    { href: '/', id: 'home', label: 'Översikt', icon: Home },
+    { href: '/privacy', id: 'privacy', label: 'Integritet', icon: Shield }
+  ]},
   { group: 'Identiteter', items: [
     { href: '/personnummer', id: 'personnummer', label: 'Personnummer', icon: User },
     { href: '/samordningsnummer', id: 'samordningsnummer', label: 'Samordningsnummer', icon: Briefcase },
@@ -85,7 +88,7 @@ export default function Navigation() {
             ))}
           </div>
 
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-4 border-t border-gray-100 space-y-3">
             <Link 
               href="https://github.com/sponsors/andreasgmg" 
               target="_blank"
@@ -94,6 +97,10 @@ export default function Navigation() {
               <Heart size={14} className="fill-red-500" />
               <span>Stöd projektet</span>
             </Link>
+            
+            <p className="text-[10px] text-gray-400 text-center leading-tight">
+              Genom att använda tjänsten godkänner du vår <Link href="/privacy" className="underline hover:text-gray-600">integritetspolicy</Link>.
+            </p>
           </div>
         </div>
       </div>
