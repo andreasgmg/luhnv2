@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { mod10 } from './bank-math';
 import { BANK_DATA } from './bank-data';
-import { getRandomElement } from './helpers';
+import { getRandomElement, secureRandom } from './helpers';
 import { generateOCR, generateCarPlate, generateSwish, generateMobileNumber, generatePlusgiro } from './generators';
 import { ValidationResult } from './validators';
 
@@ -167,16 +167,16 @@ function getYearFromSSN(ssn: string): number {
 // --- Exports ---
 
 export function generateOrgNumber(): string {
-    const prefix = `${Math.floor(Math.random() * 90) + 10}${Math.floor(Math.random() * 80) + 20}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
-    const suffixStart = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const prefix = `${secureRandom(10, 99)}${secureRandom(20, 99)}${secureRandom(0, 99).toString().padStart(2, '0')}`;
+    const suffixStart = secureRandom(0, 999).toString().padStart(3, '0');
     return `${prefix}-${suffixStart}${getLuhnDigit(prefix + suffixStart)}`;
 }
 
 export async function generateBankAccount(): Promise<Omit<BankAccount, 'type'>> {
     const bankConfig = getRandomElement(BANK_DATA);
     if (!bankConfig) throw new Error('Bank config missing');
-    const clearing = Math.floor(Math.random() * (bankConfig.max - bankConfig.min + 1)) + bankConfig.min;
-    let account = ''; for(let i=0; i<8; i++) account += Math.floor(Math.random() * 10);
+    const clearing = secureRandom(bankConfig.min, bankConfig.max);
+    let account = ''; for(let i=0; i<8; i++) account += secureRandom(0, 9);
     return { bank: bankConfig.name, clearing: clearing.toString(), account: account };
 }
 
@@ -203,7 +203,7 @@ export async function getOfficialIdentity(
       return { orgNumber, name, vatNumber: `SE${orgNumber.replace('-', '')}01`, type: 'company' };
   }
   if (type === 'bankgiro') {
-      const bg = '998' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const bg = '998' + secureRandom(0, 999).toString().padStart(3, '0');
       return { bankgiro: `${bg}-${getLuhnDigit(bg)}`, bank: 'Bankgirot', type: 'bankgiro' };
   }
   if (type === 'plusgiro') return { plusgiro: generatePlusgiro(), bank: 'Plusgirot', type: 'plusgiro' };
@@ -230,6 +230,6 @@ export async function getOfficialIdentity(
     firstName: getRandomElement(actualGender === 'female' ? namesData.firstNames.female : namesData.firstNames.male)!, 
     lastName: getRandomElement(namesData.lastNames)!, 
     gender: actualGender, type: 'person',
-    address: { street: `${location.street} ${Math.floor(Math.random() * 100) + 1}`, zip: location.zip, city: location.city }
+    address: { street: `${location.street} ${secureRandom(1, 100)}`, zip: location.zip, city: location.city }
   };
 }

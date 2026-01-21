@@ -1,41 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOfficialIdentity } from '../../../lib/data-provider';
 import { logger } from '../../../lib/logger';
-
-// Helper för XML-escaping
-function escapeXML(val: any): string {
-    if (val === null || val === undefined) return '';
-    return String(val)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-}
-
-// Helper för XML-generering
-function toXML(obj: any, type: string): string {
-    let xml = `<${type}>
-`;
-    for (let key in obj) {
-        if (typeof obj[key] === 'object' && obj[key] !== null) {
-            xml += `  <${key}>
-`;
-            for (let subKey in obj[key]) {
-                xml += `    <${subKey}>${escapeXML(obj[key][subKey])}</${subKey}>
-`;
-            }
-            xml += `  </${key}>
-`;
-        } else {
-            xml += `  <${key}>${escapeXML(obj[key])}</${key}>
-`;
-        }
-    }
-    xml += `</${type}>
-`;
-    return xml;
-}
+import { XMLBuilder } from 'fast-xml-parser';
 
 // Helper för korrekt CSV-escaping
 function escapeCSV(val: any): string {
@@ -47,6 +13,14 @@ function escapeCSV(val: any): string {
 // Configuration Constants
 const MAX_COUNT = 100000;
 const YIELD_THRESHOLD = 200; // Yield control to event loop every X items
+
+// XML Builder Configuration
+const xmlBuilder = new XMLBuilder({
+    ignoreAttributes: false,
+    format: true,
+    indentBy: "  ",
+    suppressEmptyNode: true
+});
 
 /**
  * API v3 - Streaming Support
@@ -85,7 +59,7 @@ export async function GET(request: NextRequest) {
             else if (type === 'bankgiro' || type === 'plusgiro') header = 'bankgiro,bank\n';
             else if (type === 'ocr') header = 'ocr,length,lengthCheck\n';
             else if (type === 'bank_account') header = 'bank,clearing,account\n';
-            else if (type === 'car-plate') header = 'plate\n';
+            else if (type === 'car-plate' || type === 'license-plate') header = 'plate\n';
             else if (type === 'swish') header = 'swish\n';
             else if (type === 'mobile') header = 'mobile\n';
             else header = 'ssn,firstName,lastName,gender,street,zip,city\n';
@@ -114,7 +88,7 @@ export async function GET(request: NextRequest) {
                 chunk = `${escapeCSV(id.bank)},${id.clearing},${id.account}\n`;
               } else if (type === 'ocr') {
                 chunk = `${id.ocr},${id.length},${id.lengthCheck}\n`;
-              } else if (type === 'car-plate') {
+              } else if (type === 'car-plate' || type === 'license-plate') {
                 chunk = `${id.plate}\n`;
               } else if (type === 'swish') {
                 chunk = `${id.swish}\n`;
@@ -124,7 +98,8 @@ export async function GET(request: NextRequest) {
                 chunk = `${id.ssn},${escapeCSV(id.firstName)},${escapeCSV(id.lastName)},${id.gender},${escapeCSV(id.address.street)},${id.address.zip},${escapeCSV(id.address.city)}\n`;
               }
             } else if (format === 'xml') {
-              chunk = toXML(identity, 'item');
+              // Use fast-xml-parser to build the item node
+              chunk = xmlBuilder.build({ item: identity }) + '\n';
             }
 
             controller.enqueue(encoder.encode(chunk));

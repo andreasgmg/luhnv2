@@ -1,4 +1,5 @@
 import { mod10 } from './bank-math';
+import { secureRandom } from './helpers';
 
 const ALLOWED_CAR_LETTERS = "ABCDEFGHJKLMNPRSTUXYZ";
 
@@ -8,7 +9,7 @@ const ALLOWED_CAR_LETTERS = "ABCDEFGHJKLMNPRSTUXYZ";
 export function generateOCR(length = 10, lengthCheck = false): string {
     const payloadLen = length - 1 - (lengthCheck ? 1 : 0);
     let payload = '';
-    for (let i = 0; i < payloadLen; i++) payload += Math.floor(Math.random() * 10);
+    for (let i = 0; i < payloadLen; i++) payload += secureRandom(0, 9);
     if (lengthCheck) payload += (length % 10).toString();
     const getDigit = (p: string) => {
         for (let i = 0; i <= 9; i++) if (mod10(p + i)) return i.toString();
@@ -18,48 +19,46 @@ export function generateOCR(length = 10, lengthCheck = false): string {
 }
 
 /**
- * Genererar ett giltigt registreringsnummer (MLB-serien).
+ * Genererar ett giltigt registreringsnummer.
+ * Vi använder uteslutande 'MLB' serien för att tydligt markera det som testdata.
  */
 export function generateCarPlate(type: 'old' | 'new' | 'any' = 'any'): string {
     const prefix = 'MLB';
-    const digits = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    const digits = secureRandom(0, 99).toString().padStart(2, '0');
+    
     let lastChar = '';
-    const useNewFormat = type === 'new' || (type === 'any' && Math.random() > 0.5);
+    const useNewFormat = type === 'new' || (type === 'any' && secureRandom(0, 1) === 1);
+
     if (useNewFormat) {
+        // Nytt format: Sista är en bokstav (ej O)
         const allowedLast = ALLOWED_CAR_LETTERS.replace('O', '');
-        lastChar = allowedLast.charAt(Math.floor(Math.random() * allowedLast.length));
+        lastChar = allowedLast.charAt(secureRandom(0, allowedLast.length - 1));
     } else {
-        lastChar = Math.floor(Math.random() * 10).toString();
+        // Gammalt format: Sista är en siffra
+        lastChar = secureRandom(0, 9).toString();
     }
+
     return `${prefix} ${digits}${lastChar}`;
 }
 
-/**
- * Genererar ett giltigt Swish-nummer för företag (123-serien).
- */
 export function generateSwish(): string {
     let suffix = '';
     for (let i = 0; i < 7; i++) {
-        suffix += Math.floor(Math.random() * 10).toString();
+        suffix += secureRandom(0, 9).toString();
     }
     const full = '123' + suffix;
     return `${full.slice(0, 3)} ${full.slice(3, 7)} ${full.slice(7)}`;
 }
 
-/**
- * Genererar ett säkert mobilnummer reserverat för teständamål (PTS).
- */
 export function generateMobileNumber(): string {
     const min = 5;
     const max = 99;
-    const suffix = Math.floor(Math.random() * (max - min + 1)) + min;
+    const suffix = secureRandom(min, max);
     return `070-174 06 ${suffix.toString().padStart(2, '0')}`;
 }
 
 /**
- * Bekräftade testnummer för Plusgirot. 
- * Eftersom det inte finns en officiell test-prefix (likt Bg 998),
- * använder vi en lista på nummer som ofta används i svenska affärssystem för test.
+ * Bekräftade testnummer för Plusgirot.
  */
 const SAFE_PLUSGIRO_NUMBERS = [
     "286543-4", "43210-0", "12345-6", "54321-0", "987654-3",
@@ -68,5 +67,5 @@ const SAFE_PLUSGIRO_NUMBERS = [
 ];
 
 export function generatePlusgiro(): string {
-    return SAFE_PLUSGIRO_NUMBERS[Math.floor(Math.random() * SAFE_PLUSGIRO_NUMBERS.length)];
+    return SAFE_PLUSGIRO_NUMBERS[secureRandom(0, SAFE_PLUSGIRO_NUMBERS.length - 1)];
 }

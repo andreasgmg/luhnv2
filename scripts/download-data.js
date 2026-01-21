@@ -1,183 +1,162 @@
-const fs = require('fs/promises');
+const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
-const urls = {
-  personnummer: 'https://skatteverket.entryscape.net/rowstore/dataset/b4de7df7-63c0-4e7e-bb59-1f156a591763',
-  samordningsnummer: 'https://skatteverket.entryscape.net/rowstore/dataset/9f29fe09-4dbc-4d2f-848f-7cffdd075383'
+// URLs till Skatteverkets öppna data (Entryscape)
+const DATA_SOURCES = {
+  personnummer: 'https://skatteverket.entryscape.net/rowstore/dataset/b4de7df7-63c0-4e7e-bb59-1f156a591763/json',
+  samordningsnummer: 'https://skatteverket.entryscape.net/rowstore/dataset/9f29fe09-4dbc-4d2f-848f-7cffdd075383/json'
 };
 
-const dataDir = path.join(__dirname, '../src/data');
+const OUTPUT_DIR = path.join(__dirname, '../data');
 
 /**
- * Fetches with retry mechanism.
- * @param {string} url The URL to fetch.
- * @param {number} retries Number of retries.
- * @param {number} delay Delay between retries in ms.
- * @returns {Promise<any>}
+ * Parsar ett personnummer (sträng) till ett fullt årtal (YYYY).
+ * Hanterar formaten:
+ * - YYYYMMDDXXXX (12 siffror)
+ * - YYMMDD-XXXX (10 siffror med bindestreck)
+ * - YYMMDD+XXXX (10 siffror med plus, över 100 år)
  */
-async function fetchWithRetry(url, retries = 3, delay = 1000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Fetch failed with status ${response.status}`);
-      }
-      return response;
-    } catch (error) {
-      console.error(`Fetch failed for ${url}. Retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
-      if (i < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
+function getFullYear(ssn) {
+    // Ta bort allt som inte är siffror eller tecken
+    const clean = ssn.trim();
+    
+    // 12-siffrigt format (enkelt)
+    if (/^\d{12}$/.test(clean)) {
+        return parseInt(clean.substring(0, 4), 10);
     }
-  }
-}
 
+    // 10-siffrigt format med tecken (YYMMDD-XXXX eller YYMMDD+XXXX)
+    // Eller 10 siffror utan tecken (YYMMDDXXXX) - antar bindestreck då
+    // Vi måste veta nuvarande år för att gissa sekel
+    const match = clean.match(/^(\d{2})(\d{2})(\d{2})([\-\+]?)(\d{4})$/);
+    
+    if (match) {
+        const yy = parseInt(match[1], 10);
+        const separator = match[4]; // - eller +
+        
+        const currentYear = new Date().getFullYear();
+        const currentCentury = Math.floor(currentYear / 100) * 100;
+        
+        let fullYear = currentCentury + yy;
+        
+        // Om året blev i framtiden, så är det föregående sekel (1900-tal)
+        if (fullYear > currentYear) {
+            fullYear -= 100;
+        }
 
-/**
- * Fetches all data from a paginated API.
- * @param {string} baseUrl The base URL of the API.
- * @returns {Promise<any[]>} A promise that resolves to an array of all results.
- */
-async function fetchAllData(baseUrl) {
-  let allResults = [];
-  const limit = 1000;
-  let totalCount = 0;
-
-  try {
-    const initialResponse = await fetchWithRetry(`${baseUrl}?_limit=1`);
-    const initialData = await initialResponse.json();
-    totalCount = initialData.resultCount;
-  } catch (error) {
-    console.error(`Error fetching total count from ${baseUrl}:`, error);
-    return [];
-  }
-
-  if (totalCount === 0) {
-    console.log(`No results found for ${baseUrl}`);
-    return [];
-  }
-
-  console.log(`Found ${totalCount} total results for ${baseUrl}. Fetching in pages of ${limit}...`);
-
-  const totalPages = Math.ceil(totalCount / limit);
-  console.log(`Total pages to fetch: ${totalPages}`);
-
-  for (let i = 0; i < totalPages; i++) {
-    const offset = i * limit;
-    const pageUrl = `${baseUrl}?_offset=${offset}&_limit=${limit}`;
-    console.log(`Fetching page ${i + 1} of ${totalPages} from ${pageUrl}`);
-    try {
-      const response = await fetchWithRetry(pageUrl);
-      const pageData = await response.json();
-      if (pageData.results) {
-        allResults.push(...pageData.results);
-        console.log(`Fetched ${pageData.results.length} records. Total so far: ${allResults.length}`);
-      } else {
-        console.log(`No 'results' key in response for page ${i + 1}`);
-      }
-    } catch (error) {
-      console.error(`Error fetching page ${pageUrl}:`, error);
-      // Continue to next page even if one fails
-    }
-  }
-
-  return allResults;
-}
-
-
-/**
- * Filters a person or coordination number record by birth year.
- * @param {{Testpersonnummer?: string, Testsamordningsnummer?: string}} record
- * @returns {boolean}
- */
-function filterByBirthYear(record) {
-    const number = record.Testpersonnummer || record.Testsamordningsnummer;
-    if (!number) return false;
-
-    // The test data has different formats, so we need to handle them.
-    // Formats: YYYYMMDDXXXX, YYMMDD-XXXX, YYMMDD+XXXX
-    let birthYear;
-    if (number.length === 12 && !isNaN(number)) { // YYYYMMDDXXXX
-        birthYear = parseInt(number.substring(0, 4), 10);
-    } else if (number.length === 11 && (number.includes('-') || number.includes('+'))) { // YYMMDD-XXXX or YYMMDD+XXXX
-        let yearPart = parseInt(number.substring(0, 2), 10);
-        const separator = number.charAt(6);
-        const currentYearLastTwoDigits = new Date().getFullYear() % 100;
-
+        // Om separatorn är '+', så är personen över 100 år. 
+        // Vi drar bort ytterligare 100 år.
         if (separator === '+') {
-            // '+' means the person is 100 years or older.
-            // This logic assumes the script runs in the 21st century.
-            birthYear = 1900 + yearPart;
-             if (yearPart > currentYearLastTwoDigits) {
-                birthYear = 1800 + yearPart; // Should be rare for test data
-            } else {
-                birthYear = 1900 + yearPart;
-            }
-        } else { // separator === '-'
-             if (yearPart > currentYearLastTwoDigits) {
-                birthYear = 1900 + yearPart;
-            } else {
-                birthYear = 2000 + yearPart;
-            }
+            fullYear -= 100;
         }
-    } else if (number.length === 10 && !isNaN(number)) { // YYMMDDXXXX (without separator)
-         let yearPart = parseInt(number.substring(0, 2), 10);
-         const currentYearLastTwoDigits = new Date().getFullYear() % 100;
-         if (yearPart > currentYearLastTwoDigits) {
-            birthYear = 1900 + yearPart;
-        } else {
-            birthYear = 2000 + yearPart;
-        }
-    }
-    //This is a simplified logic that might not cover all edge cases but should work for the dataset.
-    else if (number.length > 8) {
-        let yearStr = number.substring(0, 2);
-        let twoDigitYear = parseInt(yearStr, 10);
-        let separator = number.includes('+') ? '+' : '-';
-        if (separator === '-') {
-            if (twoDigitYear <= (new Date().getFullYear() % 100)) {
-                birthYear = 2000 + twoDigitYear;
-            } else {
-                birthYear = 1900 + twoDigitYear;
-            }
-        } else { // separator === '+'
-            birthYear = 1900 + twoDigitYear;
-        }
-    }
-    else {
-        // console.log(`Skipping invalid number format: ${number}`);
-        return false;
+
+        return fullYear;
     }
 
-    const inRange = birthYear >= 1936 && birthYear <= 2026;
-    // if(inRange) console.log(`Number: ${number}, Year: ${birthYear}, In Range: ${inRange}`);
-    return inRange;
+    return null; // Ogiltigt format
 }
 
+function downloadFile(url, filename) {
+  return new Promise((resolve, reject) => {
+    console.log(`Laddar ner ${filename}...`);
+    https.get(url, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          resolve(json);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', reject);
+  });
+}
 
-async function downloadAndFilter() {
+// Vi sparar bara nummer i intervallet 1900-2025 för att hålla filstorleken nere och relevansen uppe
+// Men för samordningsnummer kan vi behöva vara mer generösa.
+const MIN_YEAR = 1900;
+const MAX_YEAR = new Date().getFullYear();
+
+async function main() {
+  if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  }
+
   try {
-    await fs.mkdir(dataDir, { recursive: true });
+    // 1. Personnummer
+    const pnrData = await downloadFile(DATA_SOURCES.personnummer, 'Personnummer');
+    const pnrList = [];
+    
+    if (pnrData && pnrData.results) {
+        pnrData.results.forEach(item => {
+            // Skatteverkets JSON har ofta en nyckel som är själva numret eller "testpersonnummer"
+            const num = item.testpersonnummer || item.personnummer;
+            if (num) {
+                const year = getFullYear(num);
+                if (year && year >= MIN_YEAR && year <= MAX_YEAR) {
+                    pnrList.push(num);
+                }
+            }
+        });
+    }
+    
+    console.log(`Hittade ${pnrList.length} personnummer.`);
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'personnummer.json'), JSON.stringify(pnrList, null, 2));
 
-    for (const [name, url] of Object.entries(urls)) {
-      console.log(`Processing ${name}...`);
-      const allData = await fetchAllData(url);
-      console.log(`Downloaded ${allData.length} total records for ${name}.`);
+    // 2. Samordningsnummer
+    const samData = await downloadFile(DATA_SOURCES.samordningsnummer, 'Samordningsnummer');
+    const samList = [];
 
-      console.log(`Filtering ${name} data...`);
-      const filteredData = allData.filter(filterByBirthYear);
-      console.log(`Filtered to ${filteredData.length} records between 1936 and 2026.`);
-
-      const outputPath = path.join(dataDir, `${name}.json`);
-      await fs.writeFile(outputPath, JSON.stringify({ results: filteredData }, null, 2));
-      console.log(`Filtered ${name} data saved to ${outputPath}`);
+    if (samData && samData.results) {
+        samData.results.forEach(item => {
+            const num = item.samordningsnummer || item.testsamordningsnummer;
+            if (num) {
+                // Samordningsnummer har ingen strikt åldersgräns på samma sätt, 
+                // men vi vill ha rimliga år.
+                const year = getFullYear(num); 
+                // För samordningsnummer bryr vi oss inte lika mycket om åldern, 
+                // vi tar allt som ser giltigt ut.
+                if (year) {
+                    samList.push(num);
+                }
+            }
+        });
     }
 
-  } catch (error) {
-    console.error('Error during download and filter process:', error);
+    console.log(`Hittade ${samList.length} samordningsnummer.`);
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'samordningsnummer.json'), JSON.stringify(samList, null, 2));
+
+    // 3. Generera namn (Vi mockar detta eftersom vi inte har en bra öppen källa för just namn-listor i JSON)
+    // I en riktig "Best in Class" lösning skulle vi skrapa SCB, men för nu använder vi en hårdkodad fil
+    // som vi redan har i projektet (data/names.json).
+    // Om den inte finns, skapa en placeholder.
+    if (!fs.existsSync(path.join(OUTPUT_DIR, 'names.json'))) {
+        console.log('Skapar names.json placeholder...');
+        const names = {
+            firstNames: {
+                male: ["Lars", "Mikael", "Anders", "Johan", "Erik", "Per", "Karl", "Peter", "Jan", "Thomas"],
+                female: ["Anna", "Eva", "Maria", "Karin", "Kristina", "Lena", "Sara", "Kerstin", "Ingrid", "Marie"]
+            },
+            lastNames: ["Andersson", "Johansson", "Karlsson", "Nilsson", "Eriksson", "Larsson", "Olsson", "Persson", "Svensson", "Gustafsson"],
+            company: {
+                locations: ["Stockholm", "Göteborg", "Malmö", "Uppsala", "Västerås", "Örebro", "Linköping", "Helsingborg"],
+                sectors: ["IT", "Bygg", "Konsult", "Handel", "Transport", "Media", "Finans", "Fastighet"],
+                suffixes: ["AB", "HB", "Kommanditbolag", "Group", "Nordic", "Sverige", "International"]
+            },
+            banks: ["Swedbank", "Nordea", "SEB", "Handelsbanken", "Länsförsäkringar", "Danske Bank", "ICA Banken"]
+        };
+        fs.writeFileSync(path.join(OUTPUT_DIR, 'names.json'), JSON.stringify(names, null, 2));
+    }
+
+    console.log('Klar! Data nedladdad och processad.');
+
+  } catch (err) {
+    console.error('Fel vid nedladdning:', err);
+    process.exit(1);
   }
 }
 
-downloadAndFilter();
+main();
