@@ -53,7 +53,7 @@ export async function GET(
             result = validateBankAccount(clearing, account);
         } 
         // 2. Specialfall: Adress (Async DB lookup)
-        else if (normalizedType === 'adress' || normalizedType === 'zip') {
+        else if (normalizedType === 'adress' || normalizedType === 'zip' || normalizedType === 'postnummer') {
             const zip = searchParams.get('zip') || searchParams.get('value');
             const city = searchParams.get('city');
             if (!zip) return missingParam('zip');

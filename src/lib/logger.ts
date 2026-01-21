@@ -1,10 +1,27 @@
-const SENSITIVE_KEYS = [
-  'ssn', 'personnummer', 'samordningsnummer', 'id', 'value', 'value2',
-  'account', 'kontonummer', 'clearing', 'orgNumber', 'organisationsnummer',
-  'mobile', 'mobil', 'phone', 'email', 'name', 'firstName', 'lastName',
-  'street', 'adress', 'zip', 'postnummer', 'city', 'ort',
-  'swish', 'bg', 'bankgiro', 'pg', 'plusgiro', 'ocr', 'plate', 'car-plate', 'license-plate'
-];
+const SENSITIVE_KEYS = new Set([
+  // Identiteter
+  'ssn', 'personnummer', 'samordningsnummer', 
+  'id', 'value', 'value2', // Generiska fält som i detta projekt ofta bär PII
+  
+  // Bank & Finans
+  'account', 'kontonummer', 'accountnumber',
+  'clearing', 'clearingnumber', 'clearingnummer',
+  'orgnumber', 'organisationsnummer', 
+  'iban', 'bic', 'creditcard', 'cardnumber', 'cvv', 'cvc',
+  'swish', 'bg', 'bankgiro', 'pg', 'plusgiro', 'ocr',
+
+  // Kontaktinfo
+  'mobile', 'mobil', 'phone', 'telephone', 'phonenumber',
+  'email', 'mail',
+  'name', 'firstname', 'lastname', 'fullname',
+  'street', 'adress', 'address', 'zip', 'postcode', 'postnummer', 'city', 'ort',
+  
+  // Fordon
+  'plate', 'licenseplate', 'carplate', 'regnr', 'registreringsnummer',
+
+  // Säkerhet (Generella)
+  'password', 'secret', 'token', 'key', 'auth', 'authorization', 'cookie', 'bearer'
+]);
 
 function sanitize(obj: any): any {
   if (!obj) return obj;
@@ -14,7 +31,8 @@ function sanitize(obj: any): any {
   const cleaned: any = {};
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      if (SENSITIVE_KEYS.some(k => key.toLowerCase().includes(k))) {
+      // Exakt matchning (case-insensitive) för att undvika false positives (t.ex. "providerId" vs "id")
+      if (SENSITIVE_KEYS.has(key.toLowerCase())) {
         cleaned[key] = '[REDACTED]';
       } else if (typeof obj[key] === 'object') {
         cleaned[key] = sanitize(obj[key]);

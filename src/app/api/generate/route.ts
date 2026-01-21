@@ -55,10 +55,10 @@ export async function GET(request: NextRequest) {
           // CSV Header
           if (format === 'csv') {
             let header = '';
-            if (type === 'company') header = 'orgNumber,name,vatNumber\n';
+            if (type === 'company' || type === 'organisation') header = 'orgNumber,name,vatNumber\n';
             else if (type === 'bankgiro' || type === 'plusgiro') header = 'bankgiro,bank\n';
             else if (type === 'ocr') header = 'ocr,length,lengthCheck\n';
-            else if (type === 'bank_account') header = 'bank,clearing,account\n';
+            else if (type === 'bank_account' || type === 'bank-account') header = 'bank,clearing,account\n';
             else if (type === 'car-plate' || type === 'license-plate') header = 'plate\n';
             else if (type === 'swish') header = 'swish\n';
             else if (type === 'mobile') header = 'mobile\n';
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
           }
 
           for (let i = 0; i < count; i++) {
-            const identity = await getOfficialIdentity(type, options);
+            const identity = await getOfficialIdentity(type === 'organisation' ? 'company' : type, options);
             if (!identity) continue;
 
             let chunk = '';
@@ -80,11 +80,11 @@ export async function GET(request: NextRequest) {
               chunk = (i > 0 && count > 1 ? ',' : '') + JSON.stringify(identity);
             } else if (format === 'csv') {
               const id = identity as any;
-              if (type === 'company') {
+              if (type === 'company' || type === 'organisation') {
                 chunk = `${id.orgNumber},${escapeCSV(id.name)},${id.vatNumber}\n`;
               } else if (type === 'bankgiro' || type === 'plusgiro') {
                 chunk = `${id.bankgiro || id.plusgiro},${escapeCSV(id.bank)}\n`;
-              } else if (type === 'bank_account') {
+              } else if (type === 'bank_account' || type === 'bank-account') {
                 chunk = `${escapeCSV(id.bank)},${id.clearing},${id.account}\n`;
               } else if (type === 'ocr') {
                 chunk = `${id.ocr},${id.length},${id.lengthCheck}\n`;
@@ -139,9 +139,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     logger.error('Generate API Error', error);
-    return NextResponse.json({
-        error: 'Failed to initialize data generation',
-        code: 'GENERATE_INIT_ERROR'
+    return NextResponse.json({ 
+        error: 'Failed to initialize data generation', 
+        code: 'GENERATE_INIT_ERROR' 
     }, { status: 500 });
   }
 }

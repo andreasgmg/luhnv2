@@ -103,31 +103,51 @@ interface Cache {
 }
 
 const cachedData: Cache = { personnummer: null, samordningsnummer: null, locations: null, names: null };
+// Cache Stampede Protection: Store active promises
+const loadingPromises: Partial<Record<keyof Cache, Promise<any>>> = {};
 
 async function loadData<T>(type: keyof Cache, validator: (data: unknown) => data is T): Promise<T> {
+  // 1. Check cache
   const cached = cachedData[type];
   if (cached) return cached as unknown as T;
-  try {
-    const filePath = path.join(process.cwd(), 'data', `${type}.json`);
-    const fileContent = await fs.readFile(filePath, 'utf8');
-    const json: unknown = JSON.parse(fileContent);
-    let processed: unknown = json;
-    if (type === 'personnummer' || type === 'samordningsnummer') {
-      if (typeof json === 'object' && json !== null && !Array.isArray(json)) {
-        processed = Object.values(json).reduce<string[]>((acc, val) => {
-          if (Array.isArray(val)) return acc.concat(val.map(item => String(Object.values(item)[0])));
-          return acc;
-        }, []);
-      }
-    }
-    if (!validator(processed)) throw new Error(`Validation failed for ${type}`);
-    (cachedData as any)[type] = processed;
-    return processed as T;
-  } catch (error) {
-    console.error(`❌ Failed to load ${type}:`, (error as Error).message);
-    if (type === 'names') throw error;
-    return [] as unknown as T;
+
+  // 2. Check loading promise (prevent cache stampede)
+  if (loadingPromises[type]) {
+      return loadingPromises[type] as Promise<T>;
   }
+
+  // 3. Start loading
+  const promise = (async () => {
+    try {
+        const filePath = path.join(process.cwd(), 'data', `${type}.json`);
+        const fileContent = await fs.readFile(filePath, 'utf8');
+        const json: unknown = JSON.parse(fileContent);
+        let processed: unknown = json;
+
+        if (type === 'personnummer' || type === 'samordningsnummer') {
+        if (typeof json === 'object' && json !== null && !Array.isArray(json)) {
+            processed = Object.values(json).reduce<string[]>((acc, val) => {
+            if (Array.isArray(val)) return acc.concat(val.map(item => String(Object.values(item)[0])));
+            return acc;
+            }, []);
+        }
+        }
+
+        if (!validator(processed)) throw new Error(`Validation failed for ${type}`);
+        
+        (cachedData as any)[type] = processed;
+        return processed as T;
+    } catch (error) {
+        console.error(`❌ Failed to load ${type}:`, (error as Error).message);
+        if (type === 'names') throw error;
+        return [] as unknown as T;
+    } finally {
+        delete loadingPromises[type];
+    }
+  })();
+
+  loadingPromises[type] = promise;
+  return promise;
 }
 
 // --- Helpers ---
@@ -207,7 +227,7 @@ export async function getOfficialIdentity(
       return { bankgiro: `${bg}-${getLuhnDigit(bg)}`, bank: 'Bankgirot', type: 'bankgiro' };
   }
   if (type === 'plusgiro') return { plusgiro: generatePlusgiro(), bank: 'Plusgirot', type: 'plusgiro' };
-  if (type === 'bank_account') return { ...(await generateBankAccount()), type: 'bank_account' };
+  if (type === 'bank_account' || type === 'bank-account') return { ...(await generateBankAccount()), type: 'bank_account' };
   if (type === 'ocr') return { ocr: generateOCR(options.length || 10, options.lengthCheck || false), length: options.length || 10, type: 'ocr' };
 
   const ssnType = type === 'samordningsnummer' ? 'samordningsnummer' : 'personnummer';

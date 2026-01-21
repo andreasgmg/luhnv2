@@ -99,7 +99,7 @@ export default function Generator({ type }: GeneratorProps) {
   const getDescription = () => {
     switch(type) {
       case 'personnummer': return 'Testa dina kundflöden med kompletta profiler. Vi genererar giltiga personnummer parade med matchande namn och riktiga svenska adresser.';
-      case 'samordningsnummer': return 'Validera stöd för individer utan personnummer. Vi följer Skatteverkets standard (dag + 60) för korrekta KYC- och onboarding-tester.';
+      case 'samordningsnummer': return 'Validera stöd för individer som inte är folkbokförda i Sverige. Vi följer Skatteverkets standard (dag + 60) för korrekta KYC- och onboarding-tester.';
       case 'company': return 'Mocka B2B-flöden med realistiska bolag. Vi genererar matematiskt korrekta organisationsnummer och matchande SE-momsnummer (VAT).';
       case 'bankgiro': return 'Säkra dina betalningstester. Vi använder Bankgirots dedikerade testserie (998-xxxx) för att garantera att du aldrig råkar använda ett skarpt nummer.';
       case 'plusgiro': return 'Generera giltiga svenska plusgironummer för test av äldre betalsystem.';

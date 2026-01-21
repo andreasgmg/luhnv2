@@ -1,7 +1,6 @@
 import { mod10 } from './bank-math';
+import { ALLOWED_CAR_LETTERS } from './car-data';
 import { secureRandom } from './helpers';
-
-const ALLOWED_CAR_LETTERS = "ABCDEFGHJKLMNPRSTUXYZ";
 
 /**
  * Genererar ett giltigt OCR-nummer med Luhn-kontroll.
@@ -57,9 +56,6 @@ export function generateMobileNumber(): string {
     return `070-174 06 ${suffix.toString().padStart(2, '0')}`;
 }
 
-/**
- * Bekräftade testnummer för Plusgirot.
- */
 const SAFE_PLUSGIRO_NUMBERS = [
     "286543-4", "43210-0", "12345-6", "54321-0", "987654-3",
     "111111-1", "222222-2", "333333-3", "444444-4", "555555-5",

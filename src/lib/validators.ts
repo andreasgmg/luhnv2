@@ -1,5 +1,6 @@
 import { validateSwedishBank } from './bank-rules';
 import { mod10 } from './bank-math';
+import { ALLOWED_CAR_LETTERS, FORBIDDEN_PLATES } from './car-data';
 
 export interface ValidationResult {
     valid: boolean;
@@ -28,9 +29,6 @@ const MIN_BG_LEN = 7;
 const MAX_BG_LEN = 8;
 const MIN_PG_LEN = 2;
 const MAX_PG_LEN = 8;
-
-// I, Q, V, Å, Ä, Ö are not used in car plates
-const ALLOWED_CAR_LETTERS = "ABCDEFGHJKLMNPRSTUXYZ";
 
 /**
  * Validerar Personnummer och Samordningsnummer enligt SKV 704.
@@ -101,17 +99,20 @@ export function validateCarPlate(plate: string): ValidationResult {
     const letters = clean.slice(0, 3);
     const digits = clean.slice(3, 5);
     const lastChar = clean.slice(5);
+    
     for (const char of letters) if (!ALLOWED_CAR_LETTERS.includes(char)) return { valid: false, error: 'Ogiltig bokstav' };
-    // Vi kollar inte längre förbjudna ord (FORBIDDEN_PLATES) för att förenkla och spara utrymme.
+    
+    // Check forbidden combinations
+    if (FORBIDDEN_PLATES.includes(letters)) {
+        return { valid: false, error: 'Spärrad bokstavskombination' };
+    }
+
     if (!/^\d{2}$/.test(digits)) return { valid: false, error: 'Felaktigt format' };
     if (/^\d$/.test(lastChar)) return { valid: true, format: 'old' };
     if (ALLOWED_CAR_LETTERS.includes(lastChar) && lastChar !== 'O') return { valid: true, format: 'new' };
     return { valid: false, error: 'Ogiltigt sista tecken' };
 }
 
-/**
- * Validerar ett Swish-nummer för företag/förening.
- */
 export function validateSwish(number: string): ValidationResult {
     const clean = number.replace(/\D/g, '');
     if (clean.length !== 10) return { valid: false, error: 'Ett Swish-nummer för företag måste ha 10 siffror' };
